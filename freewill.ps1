@@ -37,7 +37,7 @@ $VK_F11 = 0x7A
 # Inform user that the script is running and waiting for input
 Write-Host "Waiting for Ctrl + Alt + F11 to be pressed..."
 # Path to the custom sound file on Z drive
-$soundFilePath = "Z:\custom_sound.wav"
+$soundFilePath = "Z:\na.wav"
 
 # Download the custom sound file
 $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
