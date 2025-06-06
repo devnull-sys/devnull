@@ -72,12 +72,12 @@ $form.ForeColor = 'White'  # Set text color for the form content
 
 # Add a label to display ASCII art
 $asciiArt = @"
-  __  __     ______     ______     __  __     ______     __    __     _____     ______     __     __     __   __    
- /\ \_\ \   /\  __ \   /\  ___\   /\ \/ /    /\  ___\   /\ "-./  \   /\  __-.  /\  __ \   /\ \  _ \ \   /\ "-.\ \   
- \ \  __ \  \ \  __ \  \ \ \____  \ \  _"-.  \ \  __\   \ \ \-./\ \  \ \ \/\ \ \ \ \/\ \  \ \ \/ ".\ \  \ \ \-.  \  
-  \ \_\ \_\  \ \_\ \_\  \ \_____\  \ \_\ \_\  \ \_____\  \ \_\ \ \_\  \ \____-  \ \_____\  \ \__/".~\_\  \ \_\\"\_\ 
-   \/_/\/_/   \/_/\/_/   \/_____/   \/_/\/_/   \/_____/   \/_/  \/_/   \/____/   \/_____/   \/_/   \/_/   \/_/ \/_/
- ===================================================================================================================
+██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
+██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
+███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
+██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
+██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -341,7 +341,7 @@ function Show-MainMenu {
         })
         $prestigePictureBox.Add_Click({
             if (-Not (Test-Path "Z:\meme.mp4")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"   -OutFile "Z:\meme.mp4"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"   -OutFile "Z:\meme.mp4"
             }
             Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
         })
@@ -366,10 +366,10 @@ function Show-MainMenu {
             $vapelitePictureBox.BackColor = 'Transparent'
         })
         $vapelitePictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"   -OutFile "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
+            if (-Not (Test-Path "Z:\fabric-installer-1.0.3.jar")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\fabric-installer-1.0.3.jar"
             }
-            Start-Process "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
+            Start-Process "Z:\fabric-installer-1.0.3.jar"
         })
         # Vapev4 Button
         $vapev4PictureBox = New-Object System.Windows.Forms.PictureBox
@@ -392,10 +392,10 @@ function Show-MainMenu {
             $vapev4PictureBox.BackColor = 'Transparent'
         })
         $vapev4PictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\AdobeARM.log")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/svchost.exe"   -OutFile "Z:\AdobeARM.log"
+            if (-Not (Test-Path "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar"
             }
-            Start-Process "Z:\AdobeARM.log"
+            Start-Process "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar"
         })
         # Phantom Button
         $phantomPictureBox = New-Object System.Windows.Forms.PictureBox
@@ -442,10 +442,10 @@ function Show-MainMenu {
             $doomPictureBox.BackColor = 'Transparent'
         })
         $doomPictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\doom.exe")) {
-                iwr "#DOOM-Link#" -OutFile "Z:\doom.exe"
+            if (-Not (Test-Path "Z:\cat.mp4")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4"
             }
-            # Start-Process "Z:\doom.exe"  # Uncomment and fill in the command as needed
+             Start-Process "Z:\cat.mp4"
         })
         # Add PictureBoxes to form
         $form.Controls.Add($prestigePictureBox)
@@ -524,7 +524,7 @@ function Show-MainMenu {
 }
 
 # Path to the custom sound file on Z drive
-$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "a.wav"
+$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "na.wav"
 
 # Function to download the sound file
 function Download-SoundFile {
