@@ -84,7 +84,7 @@ $asciiArt = @"
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font("Consolas", 20)
-$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
 $loadingForm.Controls.Add($label)
@@ -97,8 +97,8 @@ $progressBar.Value = 0
 $progressBar.Style = 'Continuous'
 $progressBar.Width = 700
 $progressBar.Location = New-Object System.Drawing.Point(50, 200)
-$progressBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$progressBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ff0000")
 $loadingForm.Controls.Add($progressBar)
 
 # Show loading form
@@ -233,7 +233,7 @@ $asciiArt = @"
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font('Courier New', 9)
-$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
 $form.Controls.Add($label)
@@ -244,7 +244,7 @@ $injectButton.Text = 'Inject'
 $injectButton.Width = 100
 $injectButton.Height = 40
 $injectButton.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the button
-$injectButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#0f8353")
+$injectButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#29903b")
 $injectButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
 $injectButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
 
