@@ -401,6 +401,7 @@ $injectButton.Add_Click({
 $destructButton.Add_Click({
     # Path to the virtual disk
     $vdiskPath = "C:\temp\ddr.vhd"
+    
     # STEP 1: Get the virtual disk's associated disk number
     $diskNumber = $null
     $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
@@ -410,6 +411,7 @@ $destructButton.Add_Click({
         Write-Host "Virtual disk not found or not attached. Aborting destruction."
         return
     }
+    
     # STEP 2: Detach the virtual disk
     $detachScript = @"
 select vdisk file="$vdiskPath"
@@ -419,55 +421,83 @@ detach vdisk
     $detachScript | Set-Content -Path $detachFile
     diskpart /s $detachFile | Out-Null
     Remove-Item -Path $detachFile -Force
-    # STEP 3: Initialize the disk (if needed)
-    $initializeScript = @"
-select disk $diskNumber
-online disk
-convert mbr
-"@
-    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $initializeScript | Set-Content -Path $initFile
-    diskpart /s $initFile | Out-Null
-    Remove-Item -Path $initFile -Force
-    # STEP 4: Create partition and assign drive letter
-    $partitionScript = @"
-select disk $diskNumber
-create partition primary
-assign letter=Z
-"@
-    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $partitionScript | Set-Content -Path $partFile
-    diskpart /s $partFile | Out-Null
-    Remove-Item -Path $partFile -Force
-    # STEP 5: Delete the virtual disk file
+    
+    # Wait for the virtual disk to be detached
+    Start-Sleep -Seconds 2
+    
+    # STEP 3: Delete the virtual disk file
     if (Test-Path $vdiskPath) {
         Remove-Item -Path $vdiskPath -Force
     }
-    # STEP 6: Clean up "Recent" shortcuts
+    
+    # Wait for the virtual disk file to be deleted
+    while (Test-Path $vdiskPath) {
+        Start-Sleep -Milliseconds 500
+    }
+    
+    # STEP 4: Clean up "Recent" shortcuts
     $recentPath = [Environment]::GetFolderPath("Recent")
     Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
         Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
     }
-    # Destruct other stuff after disk is gone
+    
+    # Wait for "Recent" shortcuts to be cleaned
+    Start-Sleep -Seconds 1
+    
+    # STEP 5: Remove registry entries
     Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
     Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
-    # Clear Temp
+    
+    # Wait for registry entries to be removed
+    Start-Sleep -Seconds 1
+    
+    # STEP 6: Clear Temp
     Remove-Item -Path "C:\temp\*" -Recurse -Force
-    Stop-Process -Name vds -Force
-    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
-    # Event logs
+    
+    # Wait for Temp to be cleared
+    Start-Sleep -Seconds 1
+    
+    # STEP 7: Stop vds service
+    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
+    
+    # Wait for vds service to stop
+    Start-Sleep -Seconds 1
+    
+    # STEP 8: Remove PowerShell-related documents
+    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
+    
+    # Wait for PowerShell-related documents to be removed
+    Start-Sleep -Seconds 1
+    
+    # STEP 9: Clear Event logs
     Clear-EventLog -LogName System
     wevtutil cl "Windows PowerShell"
-    # Remove Stuff from MuiCache
+    
+    # Wait for event logs to be cleared
+    Start-Sleep -Seconds 1
+    
+    # STEP 10: Remove Stuff from MuiCache
     Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
     ForEach-Object { $_.PSObject.Properties } |
     Where-Object { $_.Name -like "Z:\*" } |
-    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
-    # BAM
-    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
-    # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex'
-    # Clear JVM args logs and traces by clearing content
+    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
+    
+    # Wait for MuiCache to be cleaned
+    Start-Sleep -Seconds 1
+    
+    # STEP 11: BAM
+    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name -ErrorAction SilentlyContinue }
+    
+    # Wait for BAM to be cleaned
+    Start-Sleep -Seconds 1
+    
+    # STEP 12: Conhost History
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1    | iex'
+    
+    # Wait for Conhost History to be cleared
+    Start-Sleep -Seconds 1
+    
+    # STEP 13: Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
         "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
@@ -479,6 +509,13 @@ assign letter=Z
             Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
         }
     }
+    
+    # Wait for JVM logs to be cleared
+    Start-Sleep -Seconds 1
+    
+    # Add a 1-second delay before closing
+    Start-Sleep -Seconds 1
+    
     # Gracefully close the application
     $form.Close()
     $form.Dispose()
