@@ -232,10 +232,11 @@ $asciiArt = @"
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
-$label.Font = New-Object System.Drawing.Font('Courier New', 9, [System.Drawing.FontStyle]::Bold)
+$label.Font = New-Object System.Drawing.Font('Courier New', 9)
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
+$form.Controls.Add($label)
 
 # Define Main Menu Buttons
 $injectButton = New-Object System.Windows.Forms.Button
@@ -314,32 +315,31 @@ $injectButton.Add_Click({
     $prestigeButton.Text = 'Prestige'
     $prestigeButton.Width = 120
     $prestigeButton.Height = 40
-    $prestigeButton.Location = New-Object System.Drawing.Point(150, 200)
+    $prestigeButton.Location = New-Object System.Drawing.Point(350, 150)
     $prestigeButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a167ff")
     $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         if (-Not (Test-Path "Z:\meme.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"  -OutFile "Z:\meme.mp4"
         }
         Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
 
-    # NewSlot Button
-    $newSlotButton = New-Object System.Windows.Forms.Button
-    $newSlotButton.Text = 'NewSlot'
-    $newSlotButton.Width = 120
-    $newSlotButton.Height = 40
-    $newSlotButton.Location = New-Object System.Drawing.Point(270, 200)
-    $newSlotButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
-    $newSlotButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
-    $newSlotButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
-    $newSlotButton.Add_Click({
+    # DoomsDay Button
+    $doomsdayButton = New-Object System.Windows.Forms.Button
+    $doomsdayButton.Text = 'DoomsDay'
+    $doomsdayButton.Width = 120
+    $doomsdayButton.Height = 40
+    $doomsdayButton.Location = New-Object System.Drawing.Point(475, 150)
+    $doomsdayButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
+    $doomsdayButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $doomsdayButton.Add_Click({
         if (-Not (Test-Path "Z:\cat.mp4")) {
-            #start pross
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4" 
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"  -OutFile "Z:\cat.mp4"
         }
-         Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
+        Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
     })
 
     # VapeV4 Button
@@ -347,7 +347,7 @@ $injectButton.Add_Click({
     $vapev4Button.Text = 'VapeV4'
     $vapev4Button.Width = 120
     $vapev4Button.Height = 40
-    $vapev4Button.Location = New-Object System.Drawing.Point(390, 200)
+    $vapev4Button.Location = New-Object System.Drawing.Point(600, 150)
     $vapev4Button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#006466")
     $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
@@ -363,8 +363,8 @@ $injectButton.Add_Click({
     $vapeliteButton.Text = 'VapeLite'
     $vapeliteButton.Width = 120
     $vapeliteButton.Height = 40
-    $vapeliteButton.Location = New-Object System.Drawing.Point(510, 200)
-    $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#fd6a00")
+    $vapeliteButton.Location = New-Object System.Drawing.Point(412.5, 210)
+    $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#00f1e1")
     $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
     $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapeliteButton.Add_Click({
@@ -379,7 +379,7 @@ $injectButton.Add_Click({
     $phantomButton.Text = 'Phantom'
     $phantomButton.Width = 120
     $phantomButton.Height = 40
-    $phantomButton.Location = New-Object System.Drawing.Point(630, 200)
+    $phantomButton.Location = New-Object System.Drawing.Point(537.5, 210)
     $phantomButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#4c0eb7")
     $phantomButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $phantomButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
@@ -390,7 +390,7 @@ $injectButton.Add_Click({
 
     # Add buttons to form
     $form.Controls.Add($prestigeButton)
-    $form.Controls.Add($newSlotButton)
+    $form.Controls.Add($doomsdayButton)
     $form.Controls.Add($vapev4Button)
     $form.Controls.Add($vapeliteButton)
     $form.Controls.Add($phantomButton)
