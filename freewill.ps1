@@ -36,31 +36,11 @@ $VK_MENU = 0x12  # Alt key
 $VK_F11 = 0x7A
 # Inform user that the script is running and waiting for input
 Write-Host "Waiting for Ctrl + Alt + F11 to be pressed..."
-# Path to the custom sound file on Z drive
-$soundFilePath = "Z:\na.wav"
-
-# Download the custom sound file
-$soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
-if (-Not (Test-Path -Path $soundFilePath)) {
-    try {
-        iwr -Uri $soundUrl -OutFile $soundFilePath
-    } catch {
-        Write-Error "Failed to download sound file: $_"
-        exit 1
-    }
-}
-
-# Load the sound player
-$player = New-Object System.Media.SoundPlayer
-$player.SoundLocation = $soundFilePath
-
 while ($true) {
     $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
     $altPressed = [User32]::GetAsyncKeyState($VK_MENU) -band 0x8000
     $f11Pressed = [User32]::GetAsyncKeyState($VK_F11) -band 0x8000
     if ($ctrlPressed -and $altPressed -and $f11Pressed) {
-        # Play the custom sound
-        $player.PlaySync()
         break
     }
     Start-Sleep -Milliseconds 100
@@ -170,7 +150,7 @@ $form.MaximizeBox = $false
 $form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
 # Set the title to empty (remove the title)
-$form.Text = "By Zpat | FAX" 
+$form.Text = "HackEmDown" 
 # Set the top bar (title bar) color to black
 $form.BackColor = 'Black'  # Set background color for the whole form
 $form.ForeColor = 'White'  # Set text color for the form content
@@ -211,8 +191,38 @@ function Show-MainMenu {
     $form.Controls.Add($injectButton)
     $form.Controls.Add($destructButton)
 }
+# Path to the custom sound file on Z drive
+$soundFilePath = "Z:\na.wav"
+
+# Function to download the sound file
+function Download-SoundFile {
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
+    try {
+        iwr -Uri $soundUrl -OutFile $soundFilePath
+    } catch {
+        Write-Error "Failed to download sound file: $_"
+        exit 1
+    }
+}
+
 # Inject Button Click: Show Prestige and Vape buttons
 $injectButton.Add_Click({
+    # Disable the form to prevent interaction
+    $form.Enabled = $false
+    
+    # Download the sound file
+    Download-SoundFile
+    
+    # Load the sound player
+    $player = New-Object System.Media.SoundPlayer
+    $player.SoundLocation = $soundFilePath
+    
+    # Play the custom sound
+    $player.PlaySync()
+    
+    # Re-enable the form after sound playback
+    $form.Enabled = $true
+    
     $form.Controls.Clear()
     $form.Controls.Add($label)
     # Back Button
@@ -269,7 +279,7 @@ $injectButton.Add_Click({
     # === YOUR CUSTOM PRESTIGE LOGIC HERE ===
     $prestigeButton.Add_Click({
         if (-Not (Test-Path "Z:\meme.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4r"
         }
         Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
@@ -288,6 +298,7 @@ $injectButton.Add_Click({
         Start-Process "Z:\AdobeARM.log"
     })
 })
+
 # Destruct Button
 $destructButton.Add_Click({
     # Path to the virtual disk
@@ -373,7 +384,9 @@ assign letter=Z
     # Stop the script process
     Stop-Process -Id $PID
 })
+
 # Initial Load
 Show-MainMenu
+
 # Run the form
 [void]$form.ShowDialog()
