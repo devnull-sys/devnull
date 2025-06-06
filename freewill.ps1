@@ -78,6 +78,7 @@ $asciiArt = @"
 ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
 ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
+========================================================================================
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -108,8 +109,8 @@ $progressBar.Location = New-Object System.Drawing.Point(
     [int](($form.ClientSize.Width - $progressBar.Width) / 2),
     [int]($label.Location.Y + $label.Height + 50)
 )
-$progressBar.Visible = $false
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")  # Set progress bar color
+$progressBar.Visible = $true
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")  # Set progress bar color to yellow
 $form.Controls.Add($progressBar)
 
 # Show the form
@@ -182,7 +183,6 @@ $imageUrls = @{
     "inj.png"       = "https://i.postimg.cc/vHTnLzW6/inj.png" 
     "det.png"       = "https://i.postimg.cc/8ktW63rS/det.png" 
     "back.png"      = "https://i.postimg.cc/C5PqpBV1/back.png" 
-    "tray.png"      = "https://i.postimg.cc/QxzT6TbY/tray.png" 
     "doom.png"      = "https://i.postimg.cc/Qt6QhnQh/doom.png" 
 }
 
@@ -219,12 +219,13 @@ $form.ForeColor = 'White'  # Set text color for the form content
 
 # ASCII Art Label
 $asciiArt = @"
-  __  __     ______     ______     __  __     ______     __    __     _____     ______     __     __     __   __    
- /\ \_\ \   /\  __ \   /\  ___\   /\ \/ /    /\  ___\   /\ "-./  \   /\  __-.  /\  __ \   /\ \  _ \ \   /\ "-.\ \   
- \ \  __ \  \ \  __ \  \ \ \____  \ \  _"-.  \ \  __\   \ \ \-./\ \  \ \ \/\ \ \ \ \/\ \  \ \ \/ ".\ \  \ \ \-.  \  
-  \ \_\ \_\  \ \_\ \_\  \ \_____\  \ \_\ \_\  \ \_____\  \ \_\ \ \_\  \ \____-  \ \_____\  \ \__/".~\_\  \ \_\\"\_\ 
-   \/_/\/_/   \/_/\/_/   \/_____/   \/_/\/_/   \/_____/   \/_/  \/_/   \/____/   \/_____/   \/_/   \/_/   \/_/ \/_/
- ===================================================================================================================
+██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
+██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
+███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
+██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
+██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
+========================================================================================
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -256,7 +257,7 @@ $progressBar.Location = New-Object System.Drawing.Point(
     [int]($label.Location.Y + $label.Height + 50)
 )
 $progressBar.Visible = $false
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")  # Set progress bar color
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffff00")  # Set progress bar color to yellow
 $form.Controls.Add($progressBar)
 
 # Function to return to main menu
@@ -445,7 +446,7 @@ function Show-MainMenu {
             if (-Not (Test-Path "Z:\cat.mp4")) {
                 iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4"
             }
-             Start-Process "Z:\cat.mp4"
+             Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'  # Uncomment and fill in the command as needed
         })
         # Add PictureBoxes to form
         $form.Controls.Add($prestigePictureBox)
@@ -486,45 +487,13 @@ function Show-MainMenu {
         $backgroundWorker.RunWorkerAsync()
     })
 
-    # Create PictureBox for Hide to Tray Button
-    $hideToTrayPictureBox = New-Object System.Windows.Forms.PictureBox
-    $hideToTrayPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "tray.png"))
-    $hideToTrayPictureBox.SizeMode = 'StretchImage'
-    $hideToTrayPictureBox.Width = 32
-    $hideToTrayPictureBox.Height = 32
-    $hideToTrayPictureBox.Location = New-Object System.Drawing.Point(
-        [int]($form.ClientSize.Width - $hideToTrayPictureBox.Width - 10),  # Adjust horizontal position
-        [int]($form.ClientSize.Height - $hideToTrayPictureBox.Height - 10)  # Adjust vertical position
-    )
-    $hideToTrayPictureBox.BackColor = 'Transparent'
-    $hideToTrayPictureBox.Add_MouseEnter({
-        $hideToTrayPictureBox.BorderStyle = 'FixedSingle'
-        $hideToTrayPictureBox.BackColor = 'Gray'
-        Start-JiggleEffect $hideToTrayPictureBox
-    })
-    $hideToTrayPictureBox.Add_MouseLeave({
-        $hideToTrayPictureBox.BorderStyle = 'None'
-        $hideToTrayPictureBox.BackColor = 'Transparent'
-    })
-    $hideToTrayPictureBox.Add_Click({
-        # Hide the form to the system tray
-        $form.Hide()
-    })
-    $hideToTrayPictureBox.Add_MouseMove({
-        # Move the form to the system tray when mouse is near the bottom right corner
-        if ($_.X -gt ($form.ClientSize.Width - 50) -and $_.Y -gt ($form.ClientSize.Height - 50)) {
-            $form.Hide()
-        }
-    })
-
     # Add PictureBoxes to form
     $form.Controls.Add($injectPictureBox)
     $form.Controls.Add($destructPictureBox)
-    $form.Controls.Add($hideToTrayPictureBox)
 }
 
 # Path to the custom sound file on Z drive
-$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "na.wav"
+$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "a.wav"
 
 # Function to download the sound file
 function Download-SoundFile {
