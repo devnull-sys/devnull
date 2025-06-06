@@ -171,8 +171,8 @@ if (-Not (Test-Path $zTmpPath)) {
 }
 
 # Download the image to Z:\tmp
-$imageUrl = "https://i.postimg.cc/mDrb7c7T/discotools-xyz-icon.png" 
-$imagePath = Join-Path -Path $zTmpPath -ChildPath "discotools-xyz-icon.png"
+$imageUrl = "https://i.postimg.cc/85D79dxD/tray.png" 
+$imagePath = Join-Path -Path $zTmpPath -ChildPath "tray.png"
 if (-Not (Test-Path $imagePath)) {
     Invoke-WebRequest -Uri $imageUrl -OutFile $imagePath
 }
@@ -276,7 +276,7 @@ function Show-MainMenu {
         $vapelitePictureBox.BackColor = 'Transparent'
         $vapelitePictureBox.Add_Click({
             if (-Not (Test-Path "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"   -OutFile "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"   -OutFile "Z:\8eefd-b61d-b1b4-c8117f1.tmp"
             }
             Start-Process "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
         })
