@@ -69,7 +69,8 @@ $form.MaximizeBox = $false
 $form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
 $form.ForeColor = 'White'  # Set text color for the form content
-
+$form.AllowResize = $false  # Prevent resizing
+$form.TopMost = $true  # Keep the form on top
 # Add a label to display ASCII art
 $asciiArt = @"
 ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
@@ -78,7 +79,6 @@ $asciiArt = @"
 ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
 ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
-                                                                                        
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -88,7 +88,6 @@ $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
 $label.Anchor = 'Top, Left'
 $form.Controls.Add($label)
-
 # Adjust the label's location when the form resizes
 $form.add_SizeChanged({
     $label.Location = New-Object System.Drawing.Point(
@@ -96,7 +95,6 @@ $form.add_SizeChanged({
         [int]($form.ClientSize.Height * 0.1)  # Adjust vertical position
     )
 })
-
 # Create a progress bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
 $progressBar.Style = 'Continuous'
@@ -109,24 +107,20 @@ $progressBar.Location = New-Object System.Drawing.Point(
     [int](($form.ClientSize.Width - $progressBar.Width) / 2),
     [int]($label.Location.Y + $label.Height + 50)
 )
-$progressBar.Visible = $true
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")  # Set progress bar color to yellow
+$progressBar.Visible = $false
+$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffff00")  # Set progress bar color to yellow
 $form.Controls.Add($progressBar)
-
 # Show the form
 $form.Show()
-
 # Simulate loading
 $loadingSteps = 100
-$stepDelay = 4000  # Total time is approximately 4 seconds (100 steps * 40 ms)
+$stepDelay = 40  # Total time is approximately 4 seconds (100 steps * 40 ms)
 for ($i = 0; $i -le $loadingSteps; $i++) {
     $progressBar.Value = $i
     Start-Sleep -Milliseconds $stepDelay
 }
-
 # Close the loading form
 $form.Close()
-
 # MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Ensure the directory exists
 $vdiskPath = "C:\temp\ddr.vhd"
@@ -173,19 +167,17 @@ $zTmpPath = "Z:\tmp"
 if (-Not (Test-Path $zTmpPath)) {
     New-Item -ItemType Directory -Path $zTmpPath
 }
-
 # Download the images to Z:\tmp
 $imageUrls = @{
-    "pr.png"      = "https://i.postimg.cc/sx8cz0pb/pr.png" 
-    "vlite.png"     = "https://i.postimg.cc/XNDx9XTx/vlite.png" 
-    "vv4.png"       = "https://i.postimg.cc/63pLvNcD/vv4.png" 
-    "pha.png"       = "https://i.postimg.cc/j5366kkC/pha.png" 
-    "inj.png"       = "https://i.postimg.cc/vHTnLzW6/inj.png" 
-    "det.png"       = "https://i.postimg.cc/8ktW63rS/det.png" 
-    "back.png"      = "https://i.postimg.cc/C5PqpBV1/back.png" 
-    "doom.png"      = "https://i.postimg.cc/Qt6QhnQh/doom.png" 
+    "pr.png"      = "https://i.postimg.cc/sx8cz0pb/pr.png"  
+    "vlite.png"     = "https://i.postimg.cc/XNDx9XTx/vlite.png"  
+    "vv4.png"       = "https://i.postimg.cc/63pLvNcD/vv4.png"  
+    "pha.png"       = "https://i.postimg.cc/j5366kkC/pha.png"  
+    "inj.png"       = "https://i.postimg.cc/vHTnLzW6/inj.png"  
+    "det.png"       = "https://i.postimg.cc/8ktW63rS/det.png"  
+    "back.png"      = "https://i.postimg.cc/C5PqpBV1/back.png"  
+    "doom.png"      = "https://i.postimg.cc/Qt6QhnQh/doom.png"  
 }
-
 foreach ($imageName in $imageUrls.Keys) {
     $imageUrl = $imageUrls[$imageName]
     $imagePath = Join-Path -Path $zTmpPath -ChildPath $imageName
@@ -193,7 +185,6 @@ foreach ($imageName in $imageUrls.Keys) {
         Invoke-WebRequest -Uri $imageUrl -OutFile $imagePath
     }
 }
-
 # END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Hide PowerShell console window
 Add-Type -Name Win -Namespace Console -MemberDefinition @'
@@ -204,7 +195,6 @@ Add-Type -Name Win -Namespace Console -MemberDefinition @'
 '@
 $consolePtr = [Console.Win]::GetConsoleWindow()
 [Console.Win]::ShowWindow($consolePtr, 0)
-
 # Create the main form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
@@ -219,7 +209,6 @@ $form.BackColor = 'Black'  # Set background color of the form to black
 $form.ForeColor = 'White'  # Set text color for the form content
 $form.AllowResize = $false  # Prevent resizing
 $form.TopMost = $true  # Keep the form on top
-
 # ASCII Art Label
 $asciiArt = @"
 ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
@@ -228,7 +217,6 @@ $asciiArt = @"
 ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
 ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
-                                                                                        
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -238,7 +226,6 @@ $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
 $label.Anchor = 'Top, Left'
 $form.Controls.Add($label)
-
 # Adjust the label's location when the form resizes
 $form.add_SizeChanged({
     $label.Location = New-Object System.Drawing.Point(
@@ -246,7 +233,6 @@ $form.add_SizeChanged({
         [int]($form.ClientSize.Height * 0.1)  # Adjust vertical position
     )
 })
-
 # Create a progress bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
 $progressBar.Style = 'Continuous'
@@ -262,7 +248,6 @@ $progressBar.Location = New-Object System.Drawing.Point(
 $progressBar.Visible = $false
 $progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffff00")  # Set progress bar color to yellow
 $form.Controls.Add($progressBar)
-
 # Function to return to main menu
 function Show-MainMenu {
     $form.Controls.Clear()
@@ -345,7 +330,7 @@ function Show-MainMenu {
         })
         $prestigePictureBox.Add_Click({
             if (-Not (Test-Path "Z:\meme.mp4")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"   -OutFile "Z:\meme.mp4"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"    -OutFile "Z:\meme.mp4"
             }
             Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
         })
@@ -371,7 +356,7 @@ function Show-MainMenu {
         })
         $vapelitePictureBox.Add_Click({
             if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\will fix it when i wake up.txt"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"    -OutFile "Z:\will fix it when i wake up.txt"
             }
             Start-Process "Z:\will fix it when i wake up.txt"
         })
@@ -397,7 +382,7 @@ function Show-MainMenu {
         })
         $vapev4PictureBox.Add_Click({
             if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\will fix it when i wake up.txt"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"    -OutFile "Z:\will fix it when i wake up.txt"
             }
             Start-Process "Z:\will fix it when i wake up.txt"
         })
@@ -447,9 +432,9 @@ function Show-MainMenu {
         })
         $doomPictureBox.Add_Click({
             if (-Not (Test-Path "Z:\cat.mp4")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4"
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"  -OutFile "Z:\cat.mp4"
             }
-             Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'  # Uncomment and fill in the command as needed
+            # Start-Process "Z:\cat.mp4"  # Uncomment and fill in the command as needed
         })
         # Add PictureBoxes to form
         $form.Controls.Add($prestigePictureBox)
@@ -459,7 +444,6 @@ function Show-MainMenu {
         $form.Controls.Add($phantomPictureBox)
         $form.Controls.Add($doomPictureBox)
     })
-
     # Create PictureBox for Destruct Button
     $destructPictureBox = New-Object System.Windows.Forms.PictureBox
     $destructPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "det.png"))
@@ -489,15 +473,12 @@ function Show-MainMenu {
         # Start background worker
         $backgroundWorker.RunWorkerAsync()
     })
-
     # Add PictureBoxes to form
     $form.Controls.Add($injectPictureBox)
     $form.Controls.Add($destructPictureBox)
 }
-
 # Path to the custom sound file on Z drive
 $soundFilePath = Join-Path -Path $zTmpPath -ChildPath "a.wav"
-
 # Function to download the sound file
 function Download-SoundFile {
     $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
@@ -505,7 +486,6 @@ function Download-SoundFile {
         Invoke-WebRequest -Uri $soundUrl -OutFile $soundFilePath
     }
 }
-
 # Create background worker
 $backgroundWorker = New-Object System.ComponentModel.BackgroundWorker
 $backgroundWorker.WorkerReportsProgress = $true
@@ -532,63 +512,36 @@ detach vdisk
     diskpart /s $detachFile | Out-Null
     Remove-Item -Path $detachFile -Force
     $sender.ReportProgress(20)
-
-    # STEP 3: Initialize the disk (if needed)
-    $initializeScript = @"
-select disk $diskNumber
-online disk
-convert mbr
-"@
-    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $initializeScript | Set-Content -Path $initFile
-    diskpart /s $initFile | Out-Null
-    Remove-Item -Path $initFile -Force
-    $sender.ReportProgress(40)
-
-    # STEP 4: Create partition and assign drive letter
-    $partitionScript = @"
-select disk $diskNumber
-create partition primary
-assign letter=Z
-"@
-    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $partitionScript | Set-Content -Path $partFile
-    diskpart /s $partFile | Out-Null
-    Remove-Item -Path $partFile -Force
-    $sender.ReportProgress(60)
-
-    # STEP 5: Delete the virtual disk file
+    # STEP 3: Delete the virtual disk file
     if (Test-Path $vdiskPath) {
         Remove-Item -Path $vdiskPath -Force
     }
-    $sender.ReportProgress(70)
-
-    # STEP 6: Clean up "Recent" shortcuts
+    $sender.ReportProgress(40)
+    # STEP 4: Clean up "Recent" shortcuts
     $recentPath = [Environment]::GetFolderPath("Recent")
     Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
         Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
     }
-    $sender.ReportProgress(80)
-
+    $sender.ReportProgress(60)
     # Destruct other stuff after disk is gone
     Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
     Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
     # Clear Temp
     Remove-Item -Path "C:\temp\*" -Recurse -Force
-    Stop-Process -Name vds -Force
-    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
+    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
     # Event logs
-    Clear-EventLog -LogName System
-    wevtutil cl "Windows PowerShell"
+    Clear-EventLog -LogName System -ErrorAction SilentlyContinue
+    wevtutil cl "Windows PowerShell" -ErrorAction SilentlyContinue
     # Remove Stuff from MuiCache
-    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
+    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache -ErrorAction SilentlyContinue |
     ForEach-Object { $_.PSObject.Properties } |
     Where-Object { $_.Name -like "Z:\*" } |
-    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
+    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
     # BAM
-    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
+    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -ErrorAction SilentlyContinue | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name -ErrorAction SilentlyContinue }
     # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex'
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex' -ErrorAction SilentlyContinue
     # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
@@ -603,9 +556,8 @@ assign letter=Z
     }
     $sender.ReportProgress(100)
     # Stop the script process
-    Stop-Process -Id $PID
+    Stop-Process -Id $PID -ErrorAction SilentlyContinue
 }
-
 $backgroundWorker.ProgressChanged = {
     param($sender, $e)
     $progressBar.Value = $e.ProgressPercentage
@@ -614,7 +566,6 @@ $backgroundWorker.ProgressChanged = {
         [System.Windows.Forms.MessageBox]::Show($e.UserState, "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     }
 }
-
 $backgroundWorker.RunWorkerCompleted = {
     param($sender, $e)
     $progressBar.Visible = $false
@@ -623,7 +574,6 @@ $backgroundWorker.RunWorkerCompleted = {
         [System.Windows.Forms.MessageBox]::Show("An error occurred during destruction: $($e.Error.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     }
 }
-
 # Function to start jiggle effect
 function Start-JiggleEffect {
     param($pictureBox)
@@ -642,9 +592,7 @@ function Start-JiggleEffect {
     })
     $timer.Start()
 }
-
 # Initial Load
 Show-MainMenu
-
 # Run the form
 [void]$form.ShowDialog()
