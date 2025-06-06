@@ -60,13 +60,13 @@ $ErrorActionPreference = 'SilentlyContinue'
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
-$form.Size = New-Object System.Drawing.Size(950, 400)
+$form.Size = New-Object System.Drawing.Size(942, 443)
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'Black'
-# Set background color to black and make the window resizable
-$form.FormBorderStyle = 'Sizable'
-$form.MaximizeBox = $true
-$form.MinimizeBox = $true
+# Set background color to black and make the window non-resizable
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
 $form.ForeColor = 'White'  # Set text color for the form content
 
@@ -78,7 +78,7 @@ $asciiArt = @"
 ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
 ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
-========================================================================================
+                                                                                        
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -118,7 +118,7 @@ $form.Show()
 
 # Simulate loading
 $loadingSteps = 100
-$stepDelay = 40  # Total time is approximately 4 seconds (100 steps * 40 ms)
+$stepDelay = 4000  # Total time is approximately 4 seconds (100 steps * 40 ms)
 for ($i = 0; $i -le $loadingSteps; $i++) {
     $progressBar.Value = $i
     Start-Sleep -Milliseconds $stepDelay
@@ -208,14 +208,17 @@ $consolePtr = [Console.Win]::GetConsoleWindow()
 # Create the main form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
-$form.Size = New-Object System.Drawing.Size(950, 400)
+$form.Size = New-Object System.Drawing.Size(942, 443)
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'Black'
-$form.FormBorderStyle = 'Sizable'
-$form.MaximizeBox = $true
-$form.MinimizeBox = $true
+# Set background color to black and make the window non-resizable
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
 $form.ForeColor = 'White'  # Set text color for the form content
+$form.AllowResize = $false  # Prevent resizing
+$form.TopMost = $true  # Keep the form on top
 
 # ASCII Art Label
 $asciiArt = @"
@@ -225,7 +228,7 @@ $asciiArt = @"
 ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
 ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
-========================================================================================
+                                                                                        
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -367,10 +370,10 @@ function Show-MainMenu {
             $vapelitePictureBox.BackColor = 'Transparent'
         })
         $vapelitePictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\fabric-installer-1.0.3.jar")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\fabric-installer-1.0.3.jar"
+            if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\will fix it when i wake up.txt"
             }
-            Start-Process "Z:\fabric-installer-1.0.3.jar"
+            Start-Process "Z:\will fix it when i wake up.txt"
         })
         # Vapev4 Button
         $vapev4PictureBox = New-Object System.Windows.Forms.PictureBox
@@ -393,10 +396,10 @@ function Show-MainMenu {
             $vapev4PictureBox.BackColor = 'Transparent'
         })
         $vapev4PictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar"
+            if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
+                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\will fix it when i wake up.txt"
             }
-            Start-Process "Z:\entityculling-fabric-1.7.4-mc1.21.4.jar"
+            Start-Process "Z:\will fix it when i wake up.txt"
         })
         # Phantom Button
         $phantomPictureBox = New-Object System.Windows.Forms.PictureBox
@@ -446,7 +449,7 @@ function Show-MainMenu {
             if (-Not (Test-Path "Z:\cat.mp4")) {
                 iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4"
             }
-             Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'  # Uncomment and fill in the command as needed
+             Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'  # Uncomment and fill in the command as needed
         })
         # Add PictureBoxes to form
         $form.Controls.Add($prestigePictureBox)
