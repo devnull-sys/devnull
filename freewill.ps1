@@ -50,164 +50,14 @@ while ($true) {
     Start-Sleep -Milliseconds 100
 }
 
-# Load System.Windows.Forms assembly
-try {
-    Add-Type -AssemblyName System.Windows.Forms
-} catch {
-    Write-Error "Failed to load System.Windows.Forms assembly: $_"
-    exit 1
-}
-# END OF KEY BUTTON DETECTION
-
 # Set preferences to run silently
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
 
-# SHOW LOADING SCREEN
-# Create a new form for loading screen
-$loadingForm = New-Object System.Windows.Forms.Form
-$loadingForm.Text = "Loading..."
-$loadingForm.Size = New-Object System.Drawing.Size(800, 300)
-$loadingForm.StartPosition = 'CenterScreen'
-$loadingForm.BackColor = 'Black'
-$loadingForm.FormBorderStyle = 'FixedDialog'
-$loadingForm.MaximizeBox = $false
-$loadingForm.MinimizeBox = $false
-
-# ASCII Art Label
-$asciiArt = @"
-     __   ____  ___   ___  _____  _______
-    / /  / __ \/ _ | / _ \/  _/ |/ / ___/
-   / /__/ /_/ / __ |/ // // //    / (_ / 
-  /____/\____/_/ |_/____/___/_/|_/\___/
-"@
-$label = New-Object System.Windows.Forms.Label
-$label.Text = $asciiArt
-$label.Font = New-Object System.Drawing.Font("Consolas", 20)
-$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
-$label.AutoSize = $true
-$label.Location = New-Object System.Drawing.Point(50, 50)
-$loadingForm.Controls.Add($label)
-
-# Loading ProgressBar
-$progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Minimum = 0
-$progressBar.Maximum = 100
-$progressBar.Value = 0
-$progressBar.Style = 'Continuous'
-$progressBar.Width = 700
-$progressBar.Location = New-Object System.Drawing.Point(50, 200)
-$progressBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ff0000")
-$loadingForm.Controls.Add($progressBar)
-
-# Show loading form
-$loadingForm.Show()
-
-# Start time
-$startTime = Get-Date
-
-# Duration in milliseconds
-$totalDuration = 4000  # 4 seconds
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 50  # Update every 50ms
-
-# Define timer tick action
-$timer.Add_Tick({
-    $elapsedTime = (Get-Date) - $startTime
-    $percentComplete = [math]::Min(100, ($elapsedTime.TotalMilliseconds / $totalDuration) * 100)
-    $progressBar.Value = $percentComplete
-
-    # Check for key press even while loading
-    $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
-    $altPressed = [User32]::GetAsyncKeyState($VK_MENU) -band 0x8000
-    $f11Pressed = [User32]::GetAsyncKeyState($VK_F11) -band 0x8000
-
-    if ($ctrlPressed -and $altPressed -and $f11Pressed) {
-        $timer.Stop()
-        $progressBar.Value = 100
-        Start-Sleep -Milliseconds 200
-        $loadingForm.Close()
-    }
-
-    if ($percentComplete -ge 100) {
-        $timer.Stop()
-        Start-Sleep -Milliseconds 200
-        $loadingForm.Close()
-    }
-})
-
-# Start the timer
-$timer.Start()
-
-# Run the loading form on the UI thread
-[void]$loadingForm.ShowDialog()
-
-# Stop and dispose the timer
-$timer.Stop()
-$timer.Dispose()
-# END OF LOADING SCREEN
-
-# MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Ensure the directory exists
-$vdiskPath = "C:\temp\ddr.vhd"
-$vdiskSizeMB = 2048 # Size of the virtual disk in MB (2 GB)
-# Step 1: Check if the virtual disk already exists and remove it if it does
-if (Test-Path -Path $vdiskPath) {
-  Remove-Item -Path $vdiskPath -Force
-}
-# Step 2: Create the virtual disk (expandable)
-$createVHDScript = @"
-create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
-"@
-$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
-$createVHDScript | Set-Content -Path $scriptFileCreate
-# Execute the diskpart command to create the virtual disk
-diskpart /s $scriptFileCreate
-# Step 3: Attach the virtual disk
-$attachVHDScript = @"
-select vdisk file=`"$vdiskPath`"
-attach vdisk
-"@
-$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
-$attachVHDScript | Set-Content -Path $scriptFileAttach
-# Execute the diskpart command to attach the virtual disk
-diskpart /s $scriptFileAttach
-# Step 4: Wait for the disk to be detected by the system
-Start-Sleep -Seconds 5  # Allow a moment for the disk to be registered by the OS
-# Retrieve the attached disk (assuming it's the last disk created)
-$disk = Get-Disk | Sort-Object -Property Number | Select-Object -Last 1
-# Check if the disk is offline, and set it online if needed
-if ($disk.IsOffline -eq $true) {
-    Set-Disk -Number $disk.Number -IsOffline $false
-}
-# Initialize the disk if it's in raw state (uninitialized)
-if ($disk.PartitionStyle -eq 'Raw') {
-    Initialize-Disk -Number $disk.Number -PartitionStyle MBR
-}
-# Step 5: Create a new partition and explicitly assign drive letter Z
-$partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
-# Step 6: Format the volume with FAT32 and set label
-Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
-# END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Close the old form
-$loadingForm.Close()
-
-# Hide PowerShell console window
-Add-Type -Name Win -Namespace Console -MemberDefinition @'
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("kernel32.dll")]
-    public static extern IntPtr GetConsoleWindow();
-'@
-$consolePtr = [Console.Win]::GetConsoleWindow()
-[Console.Win]::ShowWindow($consolePtr, 0)
-
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
-$form.Size = New-Object System.Drawing.Size(950, 400)
+$form.Size = New-Object System.Drawing.Size(942, 443)  # Set the form size to 942x443
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'Black'
 # Set background color to black and make the window non-resizable
@@ -223,19 +73,21 @@ $form.ForeColor = 'White'  # Set text color for the form content
 
 # ASCII Art Label
 $asciiArt = @"
-      ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
-      ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
-      ███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
-      ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
-      ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
-      ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
+██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
+██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
+███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
+██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
+██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font('Courier New', 9)
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
-$label.AutoSize = $true
-$label.Location = New-Object System.Drawing.Point(50, 50)
+$label.AutoSize = $false
+$label.Width = 533
+$label.Height = 90
+$label.Location = New-Object System.Drawing.Point(196, 87)
 $form.Controls.Add($label)
 
 # Define Main Menu Buttons
@@ -266,11 +118,11 @@ function Show-MainMenu {
 }
 
 # Path to the custom sound file on Z drive
-$soundFilePath = "Z:\a.wav"
+$soundFilePath = "Z:\na.wav"
 
 # Function to download the sound file
 function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"    # Replace with the actual URL of the sound file
     try {
         iwr -Uri $soundUrl -OutFile $soundFilePath
     } catch {
@@ -283,103 +135,96 @@ function Download-SoundFile {
 $injectButton.Add_Click({
     # Disable the form to prevent interaction
     $form.Enabled = $false
-
     # Download the sound file
     Download-SoundFile
-
     # Load the sound player
     $player = New-Object System.Media.SoundPlayer
     $player.SoundLocation = $soundFilePath
-
-    # Play the custom sound
+    # Play the custom sound for 40ms
+    $player.Load()
     $player.PlaySync()
-
+    Start-Sleep -Milliseconds 40
+    $player.Stop()
     # Re-enable the form after sound playback
     $form.Enabled = $true
     $form.Controls.Clear()
     $form.Controls.Add($label)
-
     # Back Button
     $backButton = New-Object System.Windows.Forms.Button
     $backButton.Text = 'Back'
     $backButton.Width = 100
     $backButton.Height = 40
-    $backButton.Location = New-Object System.Drawing.Point(800, 320)
+    $backButton.Location = New-Object System.Drawing.Point(730, 336)  # Position the button
     $backButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a60e0e")
     $backButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $backButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $backButton.Add_Click({ Show-MainMenu })
-
     # Prestige Button
     $prestigeButton = New-Object System.Windows.Forms.Button
     $prestigeButton.Text = 'Prestige'
     $prestigeButton.Width = 120
     $prestigeButton.Height = 40
-    $prestigeButton.Location = New-Object System.Drawing.Point(350, 150)
+    $prestigeButton.Location = New-Object System.Drawing.Point(196, 235)  # Position the button
     $prestigeButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a167ff")
     $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         if (-Not (Test-Path "Z:\meme.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"  -OutFile "Z:\meme.mp4"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"   -OutFile "Z:\meme.mp4"
         }
         Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
-
     # DoomsDay Button
     $doomsdayButton = New-Object System.Windows.Forms.Button
     $doomsdayButton.Text = 'DoomsDay'
     $doomsdayButton.Width = 120
     $doomsdayButton.Height = 40
-    $doomsdayButton.Location = New-Object System.Drawing.Point(475, 150)
+    $doomsdayButton.Location = New-Object System.Drawing.Point(326, 235)  # Position the button
     $doomsdayButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
     $doomsdayButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $doomsdayButton.Add_Click({
         if (-Not (Test-Path "Z:\cat.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"  -OutFile "Z:\cat.mp4"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"   -OutFile "Z:\cat.mp4"
         }
         Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
     })
-
     # VapeV4 Button
     $vapev4Button = New-Object System.Windows.Forms.Button
     $vapev4Button.Text = 'VapeV4'
     $vapev4Button.Width = 120
     $vapev4Button.Height = 40
-    $vapev4Button.Location = New-Object System.Drawing.Point(600, 150)
+    $vapev4Button.Location = New-Object System.Drawing.Point(456, 235)  # Position the button
     $vapev4Button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#006466")
     $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapev4Button.Add_Click({
         if (-Not (Test-Path "Z:\gentask.exe")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"  -OutFile "Z:\gentask.exe"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\gentask.exe"
         }
         Start-Process "Z:\gentask.exe"
     })
-
     # VapeLite Button
     $vapeliteButton = New-Object System.Windows.Forms.Button
     $vapeliteButton.Text = 'VapeLite'
     $vapeliteButton.Width = 120
     $vapeliteButton.Height = 40
-    $vapeliteButton.Location = New-Object System.Drawing.Point(412.5, 210)
+    $vapeliteButton.Location = New-Object System.Drawing.Point(586, 235)  # Position the button
     $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#00f1e1")
     $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
     $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapeliteButton.Add_Click({
         if (-Not (Test-Path "Z:\ilasm.exe")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"  -OutFile "Z:\ilasm.exe"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\ilasm.exe"
         }
         Start-Process "Z:\ilasm.exe"
     })
-
     # Phantom Button
     $phantomButton = New-Object System.Windows.Forms.Button
     $phantomButton.Text = 'Phantom'
     $phantomButton.Width = 120
     $phantomButton.Height = 40
-    $phantomButton.Location = New-Object System.Drawing.Point(537.5, 210)
+    $phantomButton.Location = New-Object System.Drawing.Point(716, 235)  # Position the button
     $phantomButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#4c0eb7")
     $phantomButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $phantomButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
@@ -387,7 +232,6 @@ $injectButton.Add_Click({
         $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
         Set-Clipboard -Value $clipboardText
     })
-
     # Add buttons to form
     $form.Controls.Add($prestigeButton)
     $form.Controls.Add($doomsdayButton)
@@ -422,17 +266,9 @@ detach vdisk
     diskpart /s $detachFile | Out-Null
     Remove-Item -Path $detachFile -Force
     
-    # Wait for the virtual disk to be detached
-    Start-Sleep -Seconds 2
-    
     # STEP 3: Delete the virtual disk file
     if (Test-Path $vdiskPath) {
         Remove-Item -Path $vdiskPath -Force
-    }
-    
-    # Wait for the virtual disk file to be deleted
-    while (Test-Path $vdiskPath) {
-        Start-Sleep -Milliseconds 500
     }
     
     # STEP 4: Clean up "Recent" shortcuts
@@ -441,63 +277,36 @@ detach vdisk
         Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
     }
     
-    # Wait for "Recent" shortcuts to be cleaned
-    Start-Sleep -Seconds 1
-    
-    # STEP 5: Remove registry entries
+    # Destruct other stuff after disk is gone
     Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
     Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
     
-    # Wait for registry entries to be removed
-    Start-Sleep -Seconds 1
-    
-    # STEP 6: Clear Temp
+    # Clear Temp
     Remove-Item -Path "C:\temp\*" -Recurse -Force
     
-    # Wait for Temp to be cleared
-    Start-Sleep -Seconds 1
-    
-    # STEP 7: Stop vds service
+    # Stop vds service
     Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
     
-    # Wait for vds service to stop
-    Start-Sleep -Seconds 1
-    
-    # STEP 8: Remove PowerShell-related documents
+    # Remove PowerShell-related documents
     Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
     
-    # Wait for PowerShell-related documents to be removed
-    Start-Sleep -Seconds 1
-    
-    # STEP 9: Clear Event logs
+    # Event logs
     Clear-EventLog -LogName System
     wevtutil cl "Windows PowerShell"
     
-    # Wait for event logs to be cleared
-    Start-Sleep -Seconds 1
-    
-    # STEP 10: Remove Stuff from MuiCache
+    # Remove Stuff from MuiCache
     Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
     ForEach-Object { $_.PSObject.Properties } |
     Where-Object { $_.Name -like "Z:\*" } |
     ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
     
-    # Wait for MuiCache to be cleaned
-    Start-Sleep -Seconds 1
-    
-    # STEP 11: BAM
+    # BAM
     gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name -ErrorAction SilentlyContinue }
     
-    # Wait for BAM to be cleaned
-    Start-Sleep -Seconds 1
-    
-    # STEP 12: Conhost History
+    # Conhost History
     Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1    | iex'
     
-    # Wait for Conhost History to be cleared
-    Start-Sleep -Seconds 1
-    
-    # STEP 13: Clear JVM args logs and traces by clearing content
+    # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
         "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
@@ -510,17 +319,85 @@ detach vdisk
         }
     }
     
-    # Wait for JVM logs to be cleared
-    Start-Sleep -Seconds 1
+    # Add a 5-second delay before closing
+    Start-Sleep -Seconds 5
     
-    # Add a 1-second delay before closing
-    Start-Sleep -Seconds 1
+    # Forcefully close the application
+    $processId = [System.Diagnostics.Process]::GetCurrentProcess().Id
+    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
     
-    # Gracefully close the application
-    $form.Close()
-    $form.Dispose()
-    [System.Windows.Forms.Application]::Exit()
+    # Delete the script itself
+    $scriptPath = $MyInvocation.MyCommand.Path
+    Remove-Item -Path $scriptPath -Force -ErrorAction SilentlyContinue
 })
+
+# MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Ensure the directory exists
+$vdiskPath = "C:\temp\ddr.vhd"
+$vdiskSizeMB = 2048 # Size of the virtual disk in MB (2 GB)
+
+# Step 1: Check if the virtual disk already exists and remove it if it does
+if (Test-Path -Path $vdiskPath) {
+    Remove-Item -Path $vdiskPath -Force
+}
+
+# Step 2: Create the virtual disk (expandable)
+$createVHDScript = @"
+create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
+"@
+$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$createVHDScript | Set-Content -Path $scriptFileCreate
+# Execute the diskpart command to create the virtual disk
+diskpart /s $scriptFileCreate | Out-Null
+Remove-Item -Path $scriptFileCreate -Force
+
+# Step 3: Attach the virtual disk
+$attachVHDScript = @"
+select vdisk file=`"$vdiskPath`"
+attach vdisk
+"@
+$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$attachVHDScript | Set-Content -Path $scriptFileAttach
+# Execute the diskpart command to attach the virtual disk
+diskpart /s $scriptFileAttach | Out-Null
+Remove-Item -Path $scriptFileAttach -Force
+
+# Step 4: Wait for the disk to be detected by the system
+Start-Sleep -Seconds 5  # Allow a moment for the disk to be registered by the OS
+
+# Retrieve the attached disk (assuming it's the last disk created)
+$disk = Get-Disk | Sort-Object -Property Number | Select-Object -Last 1
+
+# Check if the disk is offline, and set it online if needed
+if ($disk.IsOffline -eq $true) {
+    Set-Disk -Number $disk.Number -IsOffline $false
+}
+
+# Initialize the disk if it's in raw state (uninitialized)
+if ($disk.PartitionStyle -eq 'Raw') {
+    Initialize-Disk -Number $disk.Number -PartitionStyle MBR
+}
+
+# Step 5: Create a new partition and explicitly assign drive letter Z
+$partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
+
+# Step 6: Format the volume with FAT32 and set label
+Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
+
+# Download the sound file after Z drive creation is complete
+Download-SoundFile
+
+# END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Hide PowerShell console window
+Add-Type -Name Win -Namespace Console -MemberDefinition @'
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+'@
+$consolePtr = [Console.Win]::GetConsoleWindow()
+[Console.Win]::ShowWindow($consolePtr, 0)
 
 # Initial Load
 Show-MainMenu
