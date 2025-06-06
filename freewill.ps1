@@ -76,10 +76,10 @@ $loadingForm.MinimizeBox = $false
 
 # ASCII Art Label
 $asciiArt = @"
-   __   ____  ___   ___  _____  _______
-  / /  / __ \/ _ | / _ \/  _/ |/ / ___/
- / /__/ /_/ / __ |/ // // //    / (_ / 
-/____/\____/_/ |_/____/___/_/|_/\___/
+     __   ____  ___   ___  _____  _______
+    / /  / __ \/ _ | / _ \/  _/ |/ / ___/
+   / /__/ /_/ / __ |/ // // //    / (_ / 
+  /____/\____/_/ |_/____/___/_/|_/\___/
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
@@ -321,7 +321,7 @@ $injectButton.Add_Click({
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         if (-Not (Test-Path "Z:\meme.mp4")) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-fabric-0.6.13+mc1.21.4.jar"  -OutFile "Z:\meme.mp4"
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"  -OutFile "Z:\meme.mp4"
         }
         Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
