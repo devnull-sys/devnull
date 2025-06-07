@@ -48,9 +48,6 @@ while ($true) {
 # Set preferences to run silently
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
-# Track created files and directories
-$createdItems = @()
-
 # MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Ensure the directory exists
 $vdiskPath = "C:\temp\ddr.vhd"
@@ -63,8 +60,7 @@ if (Test-Path -Path $vdiskPath) {
 $createVHDScript = @"
 create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
 "@
-$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-$createdItems += $scriptFileCreate
+$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
 $createVHDScript | Set-Content -Path $scriptFileCreate
 # Execute the diskpart command to create the virtual disk
 diskpart /s $scriptFileCreate
@@ -73,8 +69,7 @@ $attachVHDScript = @"
 select vdisk file=`"$vdiskPath`"
 attach vdisk
 "@
-$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-$createdItems += $scriptFileAttach
+$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
 $attachVHDScript | Set-Content -Path $scriptFileAttach
 # Execute the diskpart command to attach the virtual disk
 diskpart /s $scriptFileAttach
@@ -95,8 +90,7 @@ $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter
 # Step 6: Format the volume with FAT32 and set label
 Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
 # Download the sound file after Z drive creation
-$soundFilePath = "Z:\a.wav"
-$createdItems += $soundFilePath
+$soundFilePath = "Z:\na.wav"
 function Download-SoundFile {
     $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"    # Replace with the actual URL of the sound file
     try {
@@ -173,19 +167,6 @@ function Show-MainMenu {
     $form.Controls.Add($injectButton)
     $form.Controls.Add($destructButton)
 }
-# Path to the custom sound file on Z drive
-$soundFilePath = "Z:\na.wav"
-$createdItems += $soundFilePath
-# Function to download the sound file
-function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"    # Replace with the actual URL of the sound file
-    try {
-        iwr -Uri $soundUrl -OutFile $soundFilePath
-    } catch {
-        Write-Error "Failed to download sound file: $_"
-        exit 1
-    }
-}
 # Inject Button Click: Show Prestige and Vape buttons
 $injectButton.Add_Click({
     # Disable the form to prevent interaction
@@ -218,13 +199,11 @@ $injectButton.Add_Click({
     $prestigeButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#a167ff")
     $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
-    $prestigeFilePath = "Z:\meme.mp4"
-    $createdItems += $prestigeFilePath
     $prestigeButton.Add_Click({
-        if (-Not (Test-Path $prestigeFilePath)) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"   -OutFile $prestigeFilePath
+        if (-Not (Test-Path "Z:\meme.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar"   -OutFile "Z:\meme.mp4"
         }
-        Start-Process java -ArgumentList '-jar "' + $prestigeFilePath + '"'
+        Start-Process java -ArgumentList '-jar "Z:\meme.mp4"'
     })
     # DoomsDay Button
     $doomsdayButton = New-Object System.Windows.Forms.Button
@@ -235,13 +214,11 @@ $injectButton.Add_Click({
     $doomsdayButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#2563eb")
     $doomsdayButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
-    $doomsdayFilePath = "Z:\cat.mp4"
-    $createdItems += $doomsdayFilePath
     $doomsdayButton.Add_Click({
-        if (-Not (Test-Path $doomsdayFilePath)) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"   -OutFile $doomsdayFilePath
+        if (-Not (Test-Path "Z:\cat.mp4")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar"   -OutFile "Z:\cat.mp4"
         }
-        Start-Process java -ArgumentList '-jar "' + $doomsdayFilePath + '"'
+        Start-Process java -ArgumentList '-jar "Z:\cat.mp4"'
     })
     # VapeV4 Button
     $vapev4Button = New-Object System.Windows.Forms.Button
@@ -252,13 +229,11 @@ $injectButton.Add_Click({
     $vapev4Button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#006466")
     $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
-    $vapev4FilePath = "Z:\gentask.exe"
-    $createdItems += $vapev4FilePath
     $vapev4Button.Add_Click({
-        if (-Not (Test-Path $vapev4FilePath)) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile $vapev4FilePath
+        if (-Not (Test-Path "Z:\gentask.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar"   -OutFile "Z:\gentask.exe"
         }
-        Start-Process $vapev4FilePath
+        Start-Process "Z:\gentask.exe"
     })
     # VapeLite Button
     $vapeliteButton = New-Object System.Windows.Forms.Button
@@ -269,13 +244,11 @@ $injectButton.Add_Click({
     $vapeliteButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#00f1e1")
     $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
     $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
-    $vapeliteFilePath = "Z:\ilasm.exe"
-    $createdItems += $vapeliteFilePath
     $vapeliteButton.Add_Click({
-        if (-Not (Test-Path $vapeliteFilePath)) {
-            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile $vapeliteFilePath
+        if (-Not (Test-Path "Z:\ilasm.exe")) {
+            iwr "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar"   -OutFile "Z:\ilasm.exe"
         }
-        Start-Process $vapeliteFilePath
+        Start-Process "Z:\ilasm.exe"
     })
     # Phantom Button
     $phantomButton = New-Object System.Windows.Forms.Button
@@ -302,7 +275,6 @@ $injectButton.Add_Click({
 $destructButton.Add_Click({
     # Path to the virtual disk
     $vdiskPath = "C:\temp\ddr.vhd"
-    $createdItems += $vdiskPath
     # STEP 1: Get the virtual disk's associated disk number
     $diskNumber = $null
     $diskList = Get-Disk | Where-Object { $_.Location -like "*$vdiskPath*" }
@@ -318,51 +290,73 @@ select vdisk file="$vdiskPath"
 detach vdisk
 "@
     $detachFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $createdItems += $detachFile
     $detachScript | Set-Content -Path $detachFile
     diskpart /s $detachFile | Out-Null
     Remove-Item -Path $detachFile -Force
-    # STEP 3: Initialize the disk (if needed)
-    $initializeScript = @"
-select disk $diskNumber
-online disk
-convert mbr
-"@
-    $initFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $createdItems += $initFile
-    $initializeScript | Set-Content -Path $initFile
-    diskpart /s $initFile | Out-Null
-    Remove-Item -Path $initFile -Force
-    # STEP 4: Create partition and assign drive letter
+    # STEP 3: Create partition and assign drive letter
     $partitionScript = @"
 select disk $diskNumber
 create partition primary
 assign letter=Z
 "@
     $partFile = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-    $createdItems += $partFile
     $partitionScript | Set-Content -Path $partFile
     diskpart /s $partFile | Out-Null
     Remove-Item -Path $partFile -Force
-    # STEP 5: Delete the virtual disk file
+    # STEP 4: Delete the virtual disk file
     if (Test-Path $vdiskPath) {
         Remove-Item -Path $vdiskPath -Force
     }
-    # Clean up "Recent" shortcuts
+    # Wait a moment for file handles to release
+    Start-Sleep -Seconds 2
+    # STEP 5: Clean up "Recent" shortcuts
     $recentPath = [Environment]::GetFolderPath("Recent")
     Get-ChildItem -Path $recentPath -Filter "*" | ForEach-Object {
-        if ($createdItems -contains $_.FullName) {
-            Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+    # Destruct other stuff after disk is gone
+    Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
+    Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force -ErrorAction SilentlyContinue
+    # Clean temp (but exclude current script files)
+    Get-ChildItem -Path "C:\temp\*" | Where-Object { $_.Name -notlike "*$(Get-Process -Id $PID | Select-Object -ExpandProperty ProcessName)*" } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
+    # Event logs
+    Clear-EventLog -LogName System -ErrorAction SilentlyContinue
+    wevtutil cl "Windows PowerShell" 2>$null
+    # Remove Stuff from MuiCache
+    Get-ItemProperty HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache |
+    ForEach-Object { $_.PSObject.Properties } |
+    Where-Object { $_.Name -like "Z:\*" } |
+    ForEach-Object { Remove-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache" -Name $_.Name -ErrorAction SilentlyContinue }
+    # BAM
+    Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State\UserSettings\* -ErrorAction SilentlyContinue | 
+    ForEach-Object { $_.PSObject.Properties } | 
+    Where-Object { $_.Name -match "mmc\.exe|diskpart\.exe" } | 
+    ForEach-Object { Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Bam\State\UserSettings\*" -Name $_.Name -ErrorAction SilentlyContinue }
+    # Conhost History
+    Set-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1    | iex'
+    # Clear JVM args logs and traces by clearing content
+    $jvmLogFiles = @(
+        "$env:USERPROFILE\.java\deployment\log\*.log",
+        "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
+        "$env:USERPROFILE\AppData\Roaming\.minecraft\logs\*.log",
+        "$env:USERPROFILE\AppData\Roaming\.minecraft\feather\logs\*.log"
+    )
+    foreach ($file in $jvmLogFiles) {
+        Get-ChildItem -Path $file -ErrorAction SilentlyContinue | ForEach-Object {
+            Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
         }
     }
-    # Clean up files and directories on Z drive
-    foreach ($item in $createdItems) {
-        if (Test-Path $item) {
-            Remove-Item -Path $item -Force -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-    # Force close the application
-    $form.Close()
-    $form.Dispose()
-    [System.Windows.Forms.Application]::Exit()
+    
+    # Stop VDS service after all operations complete
+    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
+    
+    exit
 })
+
+# Add buttons to the form
+$form.Controls.Add($injectButton)
+$form.Controls.Add($destructButton)
+
+# Show the form
+[System.Windows.Forms.Application]::Run($form)
