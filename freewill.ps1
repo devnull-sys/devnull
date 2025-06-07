@@ -153,7 +153,7 @@ $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font('Courier New', 9)
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
 $label.AutoSize = $true
-$label.Location = New-Object System.Drawing.Point(196, 87)
+$label.Location = New-Object System.Drawing.Point(196, 85)
 $form.Controls.Add($label)
 
 # Define Main Menu Buttons
