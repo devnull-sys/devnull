@@ -54,6 +54,74 @@ while ($true) {
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
 
+# MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Ensure the directory exists
+$vdiskPath = "C:\temp\ddr.vhd"
+$vdiskSizeMB = 2048 # Size of the virtual disk in MB (2 GB)
+
+# Step 1: Check if the virtual disk already exists and remove it if it does
+if (Test-Path -Path $vdiskPath) {
+    Remove-Item -Path $vdiskPath -Force
+}
+
+# Step 2: Create the virtual disk (expandable)
+$createVHDScript = @"
+create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
+"@
+$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$createVHDScript | Set-Content -Path $scriptFileCreate
+# Execute the diskpart command to create the virtual disk
+diskpart /s $scriptFileCreate | Out-Null
+Remove-Item -Path $scriptFileCreate -Force
+
+# Step 3: Attach the virtual disk
+$attachVHDScript = @"
+select vdisk file=`"$vdiskPath`"
+attach vdisk
+"@
+$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
+$attachVHDScript | Set-Content -Path $scriptFileAttach
+# Execute the diskpart command to attach the virtual disk
+diskpart /s $scriptFileAttach | Out-Null
+Remove-Item -Path $scriptFileAttach -Force
+
+# Step 4: Wait for the disk to be detected by the system
+Start-Sleep -Seconds 5  # Allow a moment for the disk to be registered by the OS
+
+# Retrieve the attached disk (assuming it's the last disk created)
+$disk = Get-Disk | Sort-Object -Property Number | Select-Object -Last 1
+
+# Check if the disk is offline, and set it online if needed
+if ($disk.IsOffline -eq $true) {
+    Set-Disk -Number $disk.Number -IsOffline $false
+}
+
+# Initialize the disk if it's in raw state (uninitialized)
+if ($disk.PartitionStyle -eq 'Raw') {
+    Initialize-Disk -Number $disk.Number -PartitionStyle MBR
+}
+
+# Step 5: Create a new partition and explicitly assign drive letter Z
+$partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
+
+# Step 6: Format the volume with FAT32 and set label
+Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
+
+# Download the sound file after Z drive creation is complete
+$soundFilePath = "Z:\na.wav"
+function Download-SoundFile {
+    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"    # Replace with the actual URL of the sound file
+    try {
+        iwr -Uri $soundUrl -OutFile $soundFilePath
+    } catch {
+        Write-Error "Failed to download sound file: $_"
+        exit 1
+    }
+}
+Download-SoundFile
+
+# END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'By Zpat - FAX'
@@ -84,9 +152,7 @@ $label = New-Object System.Windows.Forms.Label
 $label.Text = $asciiArt
 $label.Font = New-Object System.Drawing.Font('Courier New', 9)
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
-$label.AutoSize = $false
-$label.Width = 533
-$label.Height = 90
+$label.AutoSize = $true
 $label.Location = New-Object System.Drawing.Point(196, 87)
 $form.Controls.Add($label)
 
@@ -117,26 +183,10 @@ function Show-MainMenu {
     $form.Controls.Add($destructButton)
 }
 
-# Path to the custom sound file on Z drive
-$soundFilePath = "Z:\na.wav"
-
-# Function to download the sound file
-function Download-SoundFile {
-    $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"    # Replace with the actual URL of the sound file
-    try {
-        iwr -Uri $soundUrl -OutFile $soundFilePath
-    } catch {
-        Write-Error "Failed to download sound file: $_"
-        exit 1
-    }
-}
-
 # Inject Button Click: Show Prestige and Vape buttons
 $injectButton.Add_Click({
     # Disable the form to prevent interaction
     $form.Enabled = $false
-    # Download the sound file
-    Download-SoundFile
     # Load the sound player
     $player = New-Object System.Media.SoundPlayer
     $player.SoundLocation = $soundFilePath
@@ -285,7 +335,7 @@ detach vdisk
     Remove-Item -Path "C:\temp\*" -Recurse -Force
     
     # Stop vds service
-    Stop-Process -Name vds -Force -ErrorAction SilentlyContinue
+    Stop-Process "C:\Windows\System32\vds.exe" -Name vds -Force -ErrorAction SilentlyContinue
     
     # Remove PowerShell-related documents
     Get-ChildItem -Path "$env:USERPROFILE\Documents" -Filter "*.txt" | Where-Object { $_.Name -like "*PowerShell*" } | Remove-Item -Force -ErrorAction SilentlyContinue
@@ -319,75 +369,16 @@ detach vdisk
         }
     }
     
-    # Add a 5-second delay before closing
+    # Add a 5-second delay before showing the popup
     Start-Sleep -Seconds 5
+    
+    # Display popup message and wait for user to press OK
+    [System.Windows.Forms.MessageBox]::Show("Everything clear :)", "Destruct Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
     
     # Forcefully close the application
     $processId = [System.Diagnostics.Process]::GetCurrentProcess().Id
     Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-    
-    # Delete the script itself
-    $scriptPath = $MyInvocation.MyCommand.Path
-    Remove-Item -Path $scriptPath -Force -ErrorAction SilentlyContinue
 })
-
-# MAKE THE PARTITION --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Ensure the directory exists
-$vdiskPath = "C:\temp\ddr.vhd"
-$vdiskSizeMB = 2048 # Size of the virtual disk in MB (2 GB)
-
-# Step 1: Check if the virtual disk already exists and remove it if it does
-if (Test-Path -Path $vdiskPath) {
-    Remove-Item -Path $vdiskPath -Force
-}
-
-# Step 2: Create the virtual disk (expandable)
-$createVHDScript = @"
-create vdisk file=`"$vdiskPath`" maximum=$vdiskSizeMB type=expandable
-"@
-$scriptFileCreate = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
-$createVHDScript | Set-Content -Path $scriptFileCreate
-# Execute the diskpart command to create the virtual disk
-diskpart /s $scriptFileCreate | Out-Null
-Remove-Item -Path $scriptFileCreate -Force
-
-# Step 3: Attach the virtual disk
-$attachVHDScript = @"
-select vdisk file=`"$vdiskPath`"
-attach vdisk
-"@
-$scriptFileAttach = "C:\temp\$(Get-Random -Minimum 10000 -Maximum 99999)"
-$attachVHDScript | Set-Content -Path $scriptFileAttach
-# Execute the diskpart command to attach the virtual disk
-diskpart /s $scriptFileAttach | Out-Null
-Remove-Item -Path $scriptFileAttach -Force
-
-# Step 4: Wait for the disk to be detected by the system
-Start-Sleep -Seconds 5  # Allow a moment for the disk to be registered by the OS
-
-# Retrieve the attached disk (assuming it's the last disk created)
-$disk = Get-Disk | Sort-Object -Property Number | Select-Object -Last 1
-
-# Check if the disk is offline, and set it online if needed
-if ($disk.IsOffline -eq $true) {
-    Set-Disk -Number $disk.Number -IsOffline $false
-}
-
-# Initialize the disk if it's in raw state (uninitialized)
-if ($disk.PartitionStyle -eq 'Raw') {
-    Initialize-Disk -Number $disk.Number -PartitionStyle MBR
-}
-
-# Step 5: Create a new partition and explicitly assign drive letter Z
-$partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z
-
-# Step 6: Format the volume with FAT32 and set label
-Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false
-
-# Download the sound file after Z drive creation is complete
-Download-SoundFile
-
-# END OF MAKING PARTITION ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Hide PowerShell console window
 Add-Type -Name Win -Namespace Console -MemberDefinition @'
