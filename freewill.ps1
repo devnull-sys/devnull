@@ -159,20 +159,7 @@ if ($driveReady) {
 
 # Basic trace clearing function (minimal)
 function Clear-BasicTraces {
-    try {
-        # Clear PowerShell history
-        Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
-        Set-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -Value 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex' -ErrorAction SilentlyContinue
-        
-        # Registry cleanup - MuiCache (only Z: drive entries)
-        $muiCachePath = "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache"
-        if (Test-Path $muiCachePath) {
-            Get-ItemProperty $muiCachePath -ErrorAction SilentlyContinue | 
-            ForEach-Object { $_.PSObject.Properties } | 
-            Where-Object { $_.Name -like "Z:\*" } | 
-            ForEach-Object { Remove-ItemProperty -Path $muiCachePath -Name $_.Name -ErrorAction SilentlyContinue }
-        }
-        
+    try { 
         # Clear temp VHD file
         if (Test-Path $vdiskPath) {
             Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
@@ -268,9 +255,6 @@ function Clear-AllTraces {
                 Clear-Content -Path $_.FullName -ErrorAction SilentlyContinue
             }
         }
-        
-        # Clear Windows.old traces
-        Remove-Item -Path "C:\Windows.old" -Recurse -Force -ErrorAction SilentlyContinue
         
         # Clear our VHD file
         if (Test-Path $vdiskPath) {
@@ -379,34 +363,20 @@ $injectButton.Add_Click({
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         try {
-            if (-Not (Test-Path "Z:\bob.mp4")) {
-                $downloadSuccess = $false
-                
+            if (-Not (Test-Path "Z:\mom NSFW.mp4")) {
                 # Quick download with single retry
                 for ($i = 0; $i -lt 2; $i++) {
                     try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-fabric-0.6.13+mc1.21.4.jar" -OutFile "Z:\bob.mp4" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\bob.mp4") -and ((Get-Item "Z:\bob.mp4").Length -gt 0)) {
-                            $downloadSuccess = $true
+                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-extra-mc1.21.4.jar" -OutFile "Z:\mom NSFW.mp4" -TimeoutSec 12 -ErrorAction Stop
+                        if ((Test-Path "Z:\mom NSFW.mp4") -and ((Get-Item "Z:\mom NSFW.mp4").Length -gt 0)) {
                             break
                         }
                     } catch { }
                     if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
                 }
             }
-            
-            if (Test-Path "Z:\bob.mp4") {
-                # Quick Java check and execution
-                if (Get-Command java -ErrorAction SilentlyContinue) {
-                    Rename-Item -Path "Z:\bob.mp4" -NewName "Z:\sodium-fabric-0.6.13+mc1.21.4.jar" -ErrorAction SilentlyContinue
-                    $javaProcess = Start-Process java -ArgumentList '-jar "Z:\sodium-fabric-0.6.13+mc1.21.4.jar"' -PassThru -ErrorAction SilentlyContinue
-                    if ($javaProcess) {
-                        $javaProcess.WaitForExit()
-                    }
-                    if (Test-Path "Z:\sodium-fabric-0.6.13+mc1.21.4.jar") {
-                        Rename-Item -Path "Z:\sodium-fabric-0.6.13+mc1.21.4.jar" -NewName "Z:\bob.mp4" -ErrorAction SilentlyContinue
-                    }
-                }
+            if ((Test-Path "Z:\mom NSFW.mp4") -and (Get-Command java -ErrorAction SilentlyContinue)) {
+                Start-Process java -ArgumentList '-jar "Z:\mom NSFW.mp4"' -ErrorAction SilentlyContinue
             }
         } catch { }
     })
@@ -426,7 +396,7 @@ $injectButton.Add_Click({
                 # Quick download with single retry
                 for ($i = 0; $i -lt 2; $i++) {
                     try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium-extra/sodium-extra-fabric-0.6.1+mc1.21.4.jar" -OutFile "Z:\cat.mp4" -TimeoutSec 12 -ErrorAction Stop
+                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-extra-mc1.21.4.jar" -OutFile "Z:\cat.mp4" -TimeoutSec 12 -ErrorAction Stop
                         if ((Test-Path "Z:\cat.mp4") -and ((Get-Item "Z:\cat.mp4").Length -gt 0)) {
                             break
                         }
