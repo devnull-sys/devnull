@@ -405,9 +405,9 @@ function Send-InjectDiscordNotification {
 
     if ($success) {
         $message = @"
-# HackEmDown Bypass <a:TU3s:1343591160844779583> 
+# HackEmDown Bypass 👻
 
-> *Information** :page_facing_up: | Name $userName From $countryFlag
+> *Information** 📄 | Name $userName From $countryFlag
 > **Client $buttonName** loaded successfully ✅ --> Took $durationFormatted ⌚ 
 > **Dates & Times** 📆
 > ``Script loaded | Time $timeNow`` ⌚
@@ -417,9 +417,9 @@ function Send-InjectDiscordNotification {
 "@
     } else {
         $message = @"
-# HackEmDown Bypass <a:TU3s:1343591160844779583> 
+# HackEmDown Bypass 👻 
 
-> **Information** :page_facing_up: | Name $userName From $countryFlag
+> **Information** 📄 | Name $userName From $countryFlag
 > **Client $buttonName** failed loading ❌ --> Reason $errorMessage ❓ 
 > **Date & Time** 📆
 > ``Script loaded | Time $timeNow`` ⌚
