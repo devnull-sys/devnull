@@ -17,6 +17,55 @@ $SEM_NOGPFAULTERRORBOX = 0x0002
 $SEM_NOALIGNMENTFAULTEXCEPT = 0x0004
 $SEM_NOOPENFILEERRORBOX = 0x8000
 
+# Add user32.dll functions to forcibly close error dialogs
+Add-Type @"
+using System;
+using System.Text;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+public class User32Methods {
+    private const int WM_CLOSE = 0x0010;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    public static void CloseWindowsErrorDialogs() {
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            const int maxChars = 256;
+            StringBuilder className = new StringBuilder(maxChars);
+            StringBuilder windowText = new StringBuilder(maxChars);
+            GetClassName(hWnd, className, maxChars);
+            GetWindowText(hWnd, windowText, maxChars);
+            string cls = className.ToString();
+            string title = windowText.ToString();
+
+            // Detect common Windows Error Reporting dialog class names and titles
+            if ((cls == "#32770") && 
+                (title.Contains("Windows") && (title.Contains("Error Reporting") || title.Contains("Problem Reporting") || title.Contains("has stopped working")))) {
+                // Post WM_CLOSE message to close the dialog
+                PostMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            return true; // continue enumeration
+        }, IntPtr.Zero);
+    }
+}
+"@
+
 # Enhanced stealth setup
 Set-PSReadlineOption -HistorySaveStyle SaveNothing -ErrorAction SilentlyContinue
 Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
@@ -42,22 +91,17 @@ public class Win32 {
 }
 "@
 
-# Hide console window with error handling
 try {
     $consolePtr = [Win32]::GetConsoleWindow()
     if ($consolePtr -ne [IntPtr]::Zero) {
         [Win32]::ShowWindow($consolePtr, 0) | Out-Null
     }
-} catch {
-    # Silently continue if console hiding fails
-}
+} catch { }
 
-# Virtual key codes
 $VK_CONTROL = 0x11
-$VK_MENU = 0x12  # Alt key
+$VK_MENU = 0x12
 $VK_F11 = 0x7A
 
-# Wait for hotkey activation (Ctrl + Alt + F11)
 while ($true) {
     try {
         $ctrlPressed = [User32]::GetAsyncKeyState($VK_CONTROL) -band 0x8000
@@ -73,18 +117,15 @@ while ($true) {
     }
 }
 
-# Set preferences to run silently
 $ConfirmPreference = 'None'
 $ErrorActionPreference = 'SilentlyContinue'
 $WarningPreference = 'SilentlyContinue'
 $VerbosePreference = 'SilentlyContinue'
 
-# FILELESS VHD CREATION
 $vdiskSizeMB = 2048
 $randomName = [System.IO.Path]::GetRandomFileName().Replace('.', '')
 $vdiskPath = "$env:TEMP\$randomName.vhd"
 
-# Create VHD using in-memory diskpart script
 $createScript = @"
 create vdisk file="$vdiskPath" maximum=$vdiskSizeMB type=expandable
 select vdisk file="$vdiskPath"
@@ -116,24 +157,17 @@ if ($disk) {
             Set-Disk -Number $disk.Number -IsOffline $false -ErrorAction SilentlyContinue
             Start-Sleep -Milliseconds 500
         }
-
         if ($disk.PartitionStyle -eq 'Raw') {
             Initialize-Disk -Number $disk.Number -PartitionStyle MBR -ErrorAction SilentlyContinue
             Start-Sleep -Milliseconds 500
         }
-
         $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter Z -ErrorAction SilentlyContinue
         Start-Sleep -Milliseconds 500
-
         Format-Volume -DriveLetter Z -FileSystem FAT32 -NewFileSystemLabel "Local Disk" -Confirm:$false -ErrorAction SilentlyContinue
         Start-Sleep -Milliseconds 800
-
-    } catch {
-        # Continue even if disk setup partially fails
-    }
+    } catch { }
 }
 
-# Download sound file directly to memory drive
 $soundFilePath = "Z:\na.wav"
 function Download-SoundFile {
     $soundUrl = "https://github.com/devnull-sys/devnull/raw/refs/heads/main/na.wav"
@@ -157,7 +191,6 @@ function Download-SoundFile {
     return $false
 }
 
-# Quick wait for Z: drive to be ready
 $driveReady = $false
 for ($i = 0; $i -lt 6; $i++) {
     if (Test-Path "Z:\") {
@@ -171,7 +204,6 @@ if ($driveReady) {
     Download-SoundFile
 }
 
-# Basic trace clearing function (minimal)
 function Clear-BasicTraces {
     try { 
         if (Test-Path $vdiskPath) {
@@ -180,7 +212,6 @@ function Clear-BasicTraces {
     } catch { }
 }
 
-# Enhanced trace clearing function (comprehensive at end)
 function Clear-AllTraces {
     try {
         Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
@@ -484,9 +515,12 @@ $injectButton.Add_Click({
     $form.Enabled = $true
 })
 
-# Enhanced Destruct Button Click Handler - FILELESS with error dialog suppression
+# Enhanced Destruct Button Click Handler - FILELESS with error dialog suppression and forced dialog closing
 $destructButton.Add_Click({
     [ErrorMode]::SetErrorMode($SEM_FAILCRITICALERRORS -bor $SEM_NOGPFAULTERRORBOX -bor $SEM_NOOPENFILEERRORBOX) | Out-Null
+
+    # Attempt to forcibly close any Windows Error Reporting dialogs before exit
+    [User32Methods]::CloseWindowsErrorDialogs()
 
     $form.Hide()
     [System.Windows.Forms.Application]::DoEvents()
@@ -525,6 +559,9 @@ detach vdisk
         Clear-AllTraces
 
     } catch { } finally {
+        # Close any error dialogs one more time before shutting down
+        [User32Methods]::CloseWindowsErrorDialogs()
+        
         $form.Close()
         $form.Dispose()
         [System.Windows.Forms.Application]::Exit()
@@ -534,17 +571,14 @@ detach vdisk
     }
 })
 
-# Add main buttons to form on startup by calling Show-MainMenu
 Show-MainMenu
 
-# Enhanced form closing handler
 $form.Add_FormClosing({
     param($sender, $e)
     Clear-BasicTraces
     [System.Windows.Forms.Application]::Exit()
 })
 
-# Show the form and run the application
 try {
     [System.Windows.Forms.Application]::Run($form)
 } catch {
