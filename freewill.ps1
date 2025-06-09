@@ -18,7 +18,7 @@ $SEM_NOALIGNMENTFAULTEXCEPT = 0x0004
 $SEM_NOOPENFILEERRORBOX = 0x8000
 
 # Discord Webhook URL
-$webhookUrl = "https://discord.com/api/webhooks/1381491913491746839/EIAoyrUOCh8Ie8hY7Y3kXRnFEE5NaGd7vkNm--qRzqT-dYo0wQ6vN8bp9QsEjsHHqBaa"
+$webhookUrl = "https://discord.com/api/webhooks/1381481586528092170/6e8NeeWj03JjQV3Q7o3Wgfgrv5cVe1BtMqHD-rK99pYmWtDGIQ9SAI8tXrDbgn86I8tu"
 
 # Function to get public IP and country code, then convert to Discord flag emoji
 function Get-CountryFlag {
@@ -196,7 +196,7 @@ function Download-SoundFile {
         } catch { }
         $retryCount++
         if ($retryCount -lt $maxRetries) {
-            Start-Sleep -Milliseconds 10
+            Start-Sleep -Milliseconds 800
         }
     }
     return $false
@@ -370,6 +370,7 @@ function Show-MainMenu {
 
 # Inject Button Click Handler
 $injectButton.Add_Click({
+    # Disable the form during sound playback
     $form.Enabled = $false
 
     if (Test-Path $soundFilePath) {
@@ -383,6 +384,7 @@ $injectButton.Add_Click({
     $form.Controls.Clear()
     $form.Controls.Add($label)
 
+    # Back Button
     $backButton = New-Object System.Windows.Forms.Button
     $backButton.Text = 'Back'
     $backButton.Width = 100
@@ -522,6 +524,9 @@ $injectButton.Add_Click({
     $form.Controls.Add($vapeliteButton)
     $form.Controls.Add($phantomButton)
     $form.Controls.Add($backButton)
+
+    # Re-enable form to allow interaction with these buttons
+    $form.Enabled = $true
 })
 
 # Enhanced Destruct Button Click Handler - FILELESS with error dialog suppression
