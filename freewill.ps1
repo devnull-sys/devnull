@@ -232,8 +232,7 @@ function Clear-AllTraces {
         }
 
         $bamPaths = @(
-            "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings",
-            "HKLM:\SYSTEM\CurrentControlSet\Services\dam\State\UserSettings"
+            "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
         )
         foreach ($bamPath in $bamPaths) {
             if (Test-Path $bamPath) {
